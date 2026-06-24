@@ -2,10 +2,11 @@ from django.contrib import admin
 from django.contrib import messages
 from django.http import HttpResponseRedirect
 from django.urls import path, reverse
+from django.utils.html import format_html
 from django.utils import timezone
 
 from .llm import DescriptionGenerationError, generate_post_description
-from .models import Post, Subscriber
+from .models import Post, PostMedia, Subscriber
 
 
 @admin.register(Subscriber)
@@ -23,6 +24,10 @@ class PostAdmin(admin.ModelAdmin):
     search_fields = ["title", "body"]
     prepopulated_fields = {"slug": ("title",)}
     actions = ["publish_posts", "unpublish_posts", "generate_descriptions"]
+
+    def render_change_form(self, request, context, *args, **kwargs):
+        context["available_media"] = PostMedia.objects.all()[:25]
+        return super().render_change_form(request, context, *args, **kwargs)
 
     def get_urls(self):
         urls = super().get_urls()
@@ -103,3 +108,25 @@ class PostAdmin(admin.ModelAdmin):
                 f"Generated descriptions for {generated} post(s).",
                 messages.SUCCESS,
             )
+
+
+@admin.register(PostMedia)
+class PostMediaAdmin(admin.ModelAdmin):
+    list_display = ["title", "slug", "file", "created_at"]
+    search_fields = ["title", "slug", "alt_text", "file"]
+    prepopulated_fields = {"slug": ("title",)}
+    readonly_fields = ["created_at", "markdown_snippet_display"]
+    fields = [
+        "title",
+        "slug",
+        "alt_text",
+        "file",
+        "markdown_snippet_display",
+        "created_at",
+    ]
+
+    @admin.display(description="Markdown snippet")
+    def markdown_snippet_display(self, obj):
+        if not obj.pk:
+            return "Save this upload to generate a Markdown snippet."
+        return format_html("<code>{}</code>", obj.markdown_snippet)

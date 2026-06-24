@@ -1,15 +1,17 @@
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
+import tempfile
 from unittest.mock import patch
 
 from . import llm
 from .admin import PostAdmin
-from .models import Post, Subscriber
+from .models import Post, PostMedia, Subscriber
 
 
 class PostTests(TestCase):
@@ -363,6 +365,127 @@ class LatestPostsFeedTests(TestCase):
         self.assertNotIn("https://example.com/posts/new-django-post/", content)
 
 
+class SitemapTests(TestCase):
+    def make_post(self, **kwargs):
+        defaults = {
+            "title": "Live post",
+            "slug": "live-post",
+            "body": "Hello **world**.",
+            "description": "A live post",
+            "status": Post.PUBLISHED,
+            "published_at": timezone.now(),
+        }
+        defaults.update(kwargs)
+        return Post.objects.create(**defaults)
+
+    @override_settings(ALLOWED_HOSTS=["example.com"])
+    def test_sitemap_includes_public_pages_and_published_posts(self):
+        self.make_post()
+
+        response = self.client.get(
+            reverse("blog:sitemap"),
+            secure=True,
+            HTTP_HOST="example.com",
+        )
+        content = response.content.decode("utf-8")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("https://example.com/", content)
+        self.assertIn("https://example.com/archive/", content)
+        self.assertIn("https://example.com/now/", content)
+        self.assertIn("https://example.com/subscribe/", content)
+        self.assertIn("https://example.com/live-post/", content)
+
+    @override_settings(ALLOWED_HOSTS=["example.com"])
+    def test_sitemap_excludes_drafts_and_scheduled_posts(self):
+        self.make_post(slug="live-post")
+        self.make_post(
+            title="Draft post",
+            slug="draft-post",
+            status=Post.DRAFT,
+        )
+        self.make_post(
+            title="Scheduled post",
+            slug="scheduled-post",
+            published_at=timezone.now() + timezone.timedelta(days=1),
+        )
+
+        response = self.client.get(
+            reverse("blog:sitemap"),
+            secure=True,
+            HTTP_HOST="example.com",
+        )
+        content = response.content.decode("utf-8")
+
+        self.assertIn("https://example.com/live-post/", content)
+        self.assertNotIn("draft-post", content)
+        self.assertNotIn("scheduled-post", content)
+
+
+class PostMediaTests(TestCase):
+    def test_media_slug_is_generated_from_title_when_blank(self):
+        media = PostMedia.objects.create(
+            title="Hero Photo",
+            file="blog/media/2026/06/hero.png",
+        )
+
+        self.assertEqual(media.slug, "hero-photo")
+
+    def test_media_slug_can_be_changed(self):
+        media = PostMedia.objects.create(
+            title="Hero Photo",
+            slug="custom-hero",
+            file="blog/media/2026/06/hero.png",
+        )
+
+        media.slug = "renamed-hero"
+        media.save()
+
+        self.assertEqual(media.markdown_snippet, "![Hero Photo](/media/renamed-hero/)")
+
+    def test_image_media_has_markdown_image_snippet(self):
+        media = PostMedia(
+            title="Hero photo",
+            slug="hero-photo",
+            alt_text="A bright sky",
+            file="blog/media/2026/06/hero.png",
+        )
+
+        self.assertTrue(media.is_image)
+        self.assertEqual(
+            media.markdown_snippet,
+            "![A bright sky](/media/hero-photo/)",
+        )
+
+    def test_non_image_media_has_markdown_link_snippet(self):
+        media = PostMedia(
+            title="Launch notes",
+            slug="launch-notes",
+            file="blog/media/2026/06/notes.pdf",
+        )
+
+        self.assertFalse(media.is_image)
+        self.assertEqual(
+            media.markdown_snippet,
+            "[Launch notes](/media/launch-notes/)",
+        )
+
+    def test_media_detail_redirects_to_uploaded_file(self):
+        PostMedia.objects.create(
+            title="Hero photo",
+            slug="hero-photo",
+            file="blog/media/2026/06/hero.png",
+        )
+
+        response = self.client.get(reverse("blog:media_detail", args=["hero-photo"]))
+
+        self.assertRedirects(
+            response,
+            "/media/blog/media/2026/06/hero.png",
+            fetch_redirect_response=False,
+        )
+
+
 class PostAdminTests(TestCase):
     def test_reserved_slugs_are_rejected_by_admin_validation(self):
         user = get_user_model().objects.create_superuser(
@@ -390,6 +513,67 @@ class PostAdminTests(TestCase):
             "slug",
             "This slug is reserved for a site route.",
         )
+
+    def test_post_editor_shows_recent_media_markdown_snippets(self):
+        post = Post.objects.create(
+            title="Draft post",
+            slug="draft-post",
+            body="Draft body",
+            status=Post.DRAFT,
+        )
+        PostMedia.objects.create(
+            title="Hero photo",
+            slug="hero-photo",
+            alt_text="A bright sky",
+            file="blog/media/2026/06/hero.png",
+        )
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("admin:blog_post_change", args=[post.pk]))
+
+        self.assertContains(response, "Media")
+        self.assertContains(response, "Hero photo")
+        self.assertContains(
+            response,
+            "![A bright sky](/media/hero-photo/)",
+        )
+
+    def test_admin_can_upload_post_media(self):
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        with tempfile.TemporaryDirectory() as media_root:
+            with self.settings(MEDIA_ROOT=media_root):
+                response = self.client.post(
+                    reverse("admin:blog_postmedia_add"),
+                    {
+                        "title": "Hero photo",
+                        "slug": "custom-hero",
+                        "alt_text": "A bright sky",
+                        "file": SimpleUploadedFile(
+                            "hero.png",
+                            b"fake image bytes",
+                            content_type="image/png",
+                        ),
+                        "_save": "Save",
+                    },
+                )
+
+        self.assertEqual(response.status_code, 302)
+        media = PostMedia.objects.get()
+        self.assertEqual(media.title, "Hero photo")
+        self.assertEqual(media.slug, "custom-hero")
+        self.assertTrue(media.file.name.startswith("blog/media/"))
+        self.assertEqual(media.markdown_snippet, "![A bright sky](/media/custom-hero/)")
 
     def test_publish_posts_action_publishes_selected_drafts_now(self):
         post = Post.objects.create(

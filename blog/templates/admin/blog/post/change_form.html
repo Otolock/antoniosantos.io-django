@@ -11,3 +11,41 @@
     {% endif %}
     {{ block.super }}
 {% endblock %}
+
+{% block after_field_sets %}
+    {{ block.super }}
+
+    <fieldset class="module aligned">
+        <h2>Media</h2>
+        <div class="form-row">
+            <div>
+                <a class="button" href="{% url 'admin:blog_postmedia_add' %}" target="_blank" rel="noopener">Upload media</a>
+            </div>
+        </div>
+
+        {% if available_media %}
+            <div class="form-row">
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">Title</th>
+                            <th scope="col">Markdown</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for media in available_media %}
+                            <tr>
+                                <th scope="row">
+                                    <a href="{% url 'admin:blog_postmedia_change' media.pk %}">{{ media.title }}</a>
+                                </th>
+                                <td>
+                                    <input type="text" value="{{ media.markdown_snippet }}" readonly style="width: 100%;">
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </fieldset>
+{% endblock %}

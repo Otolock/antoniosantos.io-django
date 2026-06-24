@@ -5,7 +5,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils import timezone
 
 from .forms import SubscribeForm
-from .models import Post, Subscriber
+from .models import Post, PostMedia, Subscriber
 
 
 def published_posts():
@@ -78,3 +78,8 @@ def post_detail(request, slug):
 
 def legacy_post_redirect(request, slug):
     return redirect("blog:post_detail", slug=slug, permanent=True)
+
+
+def media_detail(request, slug):
+    media = get_object_or_404(PostMedia, slug=slug)
+    return redirect(media.file.url)
