@@ -5,11 +5,60 @@ Now
 {% endblock %}
 
 {% block content %}
-<section class="my-4">
+<section class="my-4 space-y-4">
     <h2 class="text-2xl font-bold">Now</h2>
 
-    <p>
-        A snapshot of what I am focused on right now.
+    <p class="italic">
+        Last Updated: June 24, 2026
     </p>
+
+    <p>
+        Welcome to my Now page! This is a snapshot of what I'm currently working on, learning, and exploring. I update this page regularly to share my current interests and projects.
+    </p>
+
+    <section class="space-y-2">
+        <h2 class="text-xl font-bold uppercase">Writing</h2>
+        <p>
+            I'm currently focused on writing in this blog. I feel like I've finally
+            found my groove with the topics I want to cover, and I'm excited to share my thoughts and experiences with you. Expect more posts on technology, photography, travel, and personal reflections.
+        </p>
+    </section>
+
+    <section class="space-y-2">
+        <h2 class="text-xl font-bold uppercase">Reading</h2>
+
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start">
+            <div class="w-32 shrink-0">
+                <a href="https://openlibrary.org/books/OL60925324M" target="_blank" rel="noopener noreferrer">
+                    <img
+                        class="aspect-[2/3] w-28 rounded border border-gray-700 object-cover"
+                        src="https://covers.openlibrary.org/b/olid/OL60925324M-L.jpg"
+                        alt="Cover of Theo of Golden by Allen Levi"
+                        width="112"
+                        height="168"
+                        loading="lazy"
+                    >
+                </a>
+
+                <div class="mt-4">
+                    <p class="font-bold">Theo of Golden</p>
+                    <p class="text-sm text-gray-500">Allen Levi</p>
+                </div>
+            </div>
+
+            <p class="flex-1 leading-relaxed text-gray-300">
+                A quiet novel about generosity, attention, and the little ways people can change each other. I'm early in it, but it already feels like the kind of book that asks you to slow down.
+            </p>
+        </div>
+    </section>
+
+    <section class="space-y-2">
+        <h2 class="text-xl font-bold uppercase">Coding</h2>
+        <p>
+            I'm currently working on this blog! This is a personal project
+            where I'm experimenting with Django, Tailwind CSS, implementing
+            the different building blocks of the IndieWeb.
+        </p>
+    </section>
 </section>
 {% endblock %}
