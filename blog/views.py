@@ -4,12 +4,21 @@ from django.utils import timezone
 from .models import Post
 
 
-def post_list(request):
-    posts = Post.objects.filter(
+def published_posts():
+    return Post.objects.filter(
         status=Post.PUBLISHED,
         published_at__lte=timezone.now(),
     )
+
+
+def post_list(request):
+    posts = published_posts()[:5]
     return render(request, "blog/post_list.html", {"posts": posts})
+
+
+def archive(request):
+    posts = published_posts()
+    return render(request, "blog/archive.html", {"posts": posts})
 
 
 def post_detail(request, slug):

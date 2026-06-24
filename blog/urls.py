@@ -7,6 +7,7 @@ app_name = "blog"
 
 urlpatterns = [
     path("", views.post_list, name="post_list"),
+    path("archive/", views.archive, name="archive"),
     path("rss.xml", LatestPostsFeed(), name="rss"),
     path("<slug:slug>/", views.post_detail, name="post_detail"),
 ]

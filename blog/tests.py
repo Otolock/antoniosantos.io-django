@@ -1,7 +1,9 @@
+from django.contrib import admin
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
+from .admin import PostAdmin
 from .models import Post
 
 
@@ -76,6 +78,48 @@ class PostViewTests(TestCase):
         self.assertNotContains(response, "Draft post")
         self.assertNotContains(response, "Scheduled post")
 
+    def test_post_list_shows_about_and_latest_five_posts(self):
+        now = timezone.now()
+        for index in range(6):
+            self.make_post(
+                title=f"Post {index + 1}",
+                slug=f"post-{index + 1}",
+                published_at=now - timezone.timedelta(days=index),
+            )
+
+        response = self.client.get(reverse("blog:post_list"))
+
+        self.assertContains(response, "I'm Antonio")
+        self.assertContains(response, reverse("blog:archive"))
+        for index in range(5):
+            self.assertContains(response, f"Post {index + 1}")
+        self.assertNotContains(response, "Post 6")
+
+    def test_archive_lists_all_published_posts_with_current_publish_dates(self):
+        self.make_post()
+        self.make_post(
+            title="Older post",
+            slug="older-post",
+            published_at=timezone.now() - timezone.timedelta(days=30),
+        )
+        self.make_post(
+            title="Draft post",
+            slug="draft-post",
+            status=Post.DRAFT,
+        )
+        self.make_post(
+            title="Scheduled post",
+            slug="scheduled-post",
+            published_at=timezone.now() + timezone.timedelta(days=1),
+        )
+
+        response = self.client.get(reverse("blog:archive"))
+
+        self.assertContains(response, "Live post")
+        self.assertContains(response, "Older post")
+        self.assertNotContains(response, "Draft post")
+        self.assertNotContains(response, "Scheduled post")
+
     def test_post_detail_renders_live_post_markdown(self):
         self.make_post()
 
@@ -138,3 +182,39 @@ class LatestPostsFeedTests(TestCase):
         self.assertContains(response, "A live post")
         self.assertNotContains(response, "Draft post")
         self.assertNotContains(response, "Scheduled post")
+
+
+class PostAdminTests(TestCase):
+    def test_publish_posts_action_publishes_selected_drafts_now(self):
+        post = Post.objects.create(
+            title="Draft post",
+            slug="draft-post",
+            body="Draft body",
+            status=Post.DRAFT,
+            published_at=None,
+        )
+        model_admin = PostAdmin(Post, admin.site)
+
+        model_admin.publish_posts(None, Post.objects.filter(pk=post.pk))
+
+        post.refresh_from_db()
+        self.assertEqual(post.status, Post.PUBLISHED)
+        self.assertIsNotNone(post.published_at)
+        self.assertTrue(post.is_published)
+
+    def test_unpublish_posts_action_switches_selected_posts_to_draft(self):
+        post = Post.objects.create(
+            title="Live post",
+            slug="live-post",
+            body="Live body",
+            status=Post.PUBLISHED,
+            published_at=timezone.now(),
+        )
+        model_admin = PostAdmin(Post, admin.site)
+
+        model_admin.unpublish_posts(None, Post.objects.filter(pk=post.pk))
+
+        post.refresh_from_db()
+        self.assertEqual(post.status, Post.DRAFT)
+        self.assertIsNone(post.published_at)
+        self.assertFalse(post.is_published)

@@ -1,21 +1,11 @@
 {% extends "blog/base.html" %}
 
 {% block title %}
-Antonio's Blog
+Archive
 {% endblock %}
 
 {% block content %}
-<h1>Antonio's Blog</h1>
-
-<section>
-    <h2>Hi, I'm Antonio Santos 👋</h2>
-    <p>
-        I write about technology, photography, travel, books, and whatever else catches my attention.
-    </p>
-</section>
-
-<section>
-    <h2>Latest posts</h2>
+<h1>Archive</h1>
 
 {% for post in posts %}
     <article>
@@ -32,10 +22,4 @@ Antonio's Blog
 {% empty %}
     <p>No posts yet.</p>
 {% endfor %}
-</section>
-
-<p>
-    <a href="{% url 'blog:archive' %}">View the archive</a>
-    <a href="{% url 'blog:rss' %}">Subscribe to the RSS feed</a>
-</p>
 {% endblock %}
