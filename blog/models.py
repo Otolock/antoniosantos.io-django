@@ -20,6 +20,7 @@ RESERVED_POST_SLUGS = {
     "search",
     "sitemap.xml",
     "robots.txt",
+    "micropub",
 }
 
 

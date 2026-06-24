@@ -163,3 +163,6 @@ OPENROUTER_APP_NAME = os.environ.get("OPENROUTER_APP_NAME", "Antonio's Blog")
 POST_DESCRIPTION_TARGET_CHARS = int(
     os.environ.get("POST_DESCRIPTION_TARGET_CHARS", "155")
 )
+
+# Micropub
+MICROPUB_TOKEN = os.environ.get("MICROPUB_TOKEN", "")

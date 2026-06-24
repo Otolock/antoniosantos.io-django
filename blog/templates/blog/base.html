@@ -5,6 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <title>{% block title %}Antonio's Blog{% endblock %}</title>
+    <link rel="micropub" href="{% url 'blog:micropub' %}">
     <link rel="stylesheet" href="{% static 'blog/style.css' %}">
     {% block head %}
     {% endblock %}

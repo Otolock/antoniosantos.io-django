@@ -5,6 +5,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils import timezone
 
 from .forms import SubscribeForm
+from .micropub import micropub
 from .models import Post, PostMedia, Subscriber
 
 

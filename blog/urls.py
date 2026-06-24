@@ -21,6 +21,7 @@ urlpatterns = [
     path("rss.xml", LatestPostsFeed(), name="rss"),
     path("sitemap.xml", sitemap, {"sitemaps": sitemaps}, name="sitemap"),
     path("media/<slug:slug>/", views.media_detail, name="media_detail"),
+    path("micropub/", views.micropub, name="micropub"),
     path("subscribe/", views.subscribe, name="subscribe"),
     path("<slug:slug>/", views.post_detail, name="post_detail"),
 ]
