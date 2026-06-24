@@ -1,0 +1,25 @@
+{% extends "blog/base.html" %}
+
+{% block title %}
+Tony's Blog
+{% endblock %}
+
+{% block content %}
+<h1>Tony's Blog</h1>
+
+{% for post in posts %}
+    <article>
+        <h2>
+            <a href="{% url 'blog:post_detail' post.slug %}">
+                {{ post.title }}
+            </a>
+        </h2>
+
+        {% if post.description %}
+            <p>{{ post.description }}</p>
+        {% endif %}
+    </article>
+{% empty %}
+    <p>No posts yet.</p>
+{% endfor %}
+{% endblock %}
