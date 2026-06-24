@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.test import override_settings
 from django.test import TestCase
 from django.urls import reverse
@@ -48,6 +49,18 @@ class PostTests(TestCase):
         self.assertFalse(draft_post.is_published)
         self.assertFalse(scheduled_post.is_published)
         self.assertFalse(unpublished_post.is_published)
+
+    def test_reserved_slugs_are_rejected_by_model_validation(self):
+        post = Post(
+            title="About",
+            slug="about",
+            body="This slug conflicts with a site route.",
+        )
+
+        with self.assertRaises(ValidationError) as context:
+            post.full_clean()
+
+        self.assertIn("slug", context.exception.error_dict)
 
 
 class PostViewTests(TestCase):
@@ -133,6 +146,52 @@ class PostViewTests(TestCase):
 
         self.assertContains(response, "Live post")
         self.assertContains(response, "<strong>world</strong>")
+
+    def test_post_detail_resolves_at_root_level_slug_url(self):
+        self.make_post()
+
+        response = self.client.get("/live-post/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Live post")
+
+    @override_settings(ALLOWED_HOSTS=["example.com"])
+    def test_post_detail_uses_root_level_canonical_url(self):
+        self.make_post()
+
+        response = self.client.get(
+            "/live-post/",
+            secure=True,
+            HTTP_HOST="example.com",
+        )
+
+        self.assertContains(
+            response,
+            '<link rel="canonical" href="https://example.com/live-post/">',
+            html=True,
+        )
+
+    def test_legacy_posts_url_returns_permanent_redirect(self):
+        self.make_post()
+
+        response = self.client.get("/posts/live-post/")
+
+        self.assertEqual(response.status_code, 301)
+
+    def test_legacy_posts_url_redirect_target_is_root_level_slug(self):
+        self.make_post()
+
+        response = self.client.get("/posts/live-post/")
+
+        self.assertEqual(response["Location"], "/live-post/")
+
+    def test_legacy_singular_post_url_redirects_for_extra_compatibility(self):
+        self.make_post()
+
+        response = self.client.get("/post/live-post/")
+
+        self.assertEqual(response.status_code, 301)
+        self.assertEqual(response["Location"], "/live-post/")
 
     def test_post_detail_returns_404_for_drafts_and_scheduled_posts(self):
         self.make_post(
@@ -244,8 +303,94 @@ class LatestPostsFeedTests(TestCase):
         self.assertNotContains(response, "Draft post")
         self.assertNotContains(response, "Scheduled post")
 
+    @override_settings(ALLOWED_HOSTS=["example.com"])
+    def test_rss_uses_canonical_post_urls(self):
+        self.make_post()
+
+        response = self.client.get(
+            reverse("blog:rss"),
+            secure=True,
+            HTTP_HOST="example.com",
+        )
+        content = response.content.decode("utf-8")
+
+        self.assertIn("https://example.com/live-post/", content)
+        self.assertNotIn("https://example.com/post/live-post/", content)
+
+    @override_settings(ALLOWED_HOSTS=["example.com"])
+    def test_rss_preserves_legacy_posts_url_as_stable_guid(self):
+        self.make_post(slug="just-write")
+
+        response = self.client.get(
+            reverse("blog:rss"),
+            secure=True,
+            HTTP_HOST="example.com",
+        )
+        content = response.content.decode("utf-8")
+
+        self.assertIn("<link>https://example.com/just-write/</link>", content)
+        self.assertIn(
+            '<guid isPermaLink="true">'
+            "https://example.com/posts/just-write/"
+            "</guid>",
+            content,
+        )
+        self.assertNotIn(
+            '<guid isPermaLink="true">'
+            "https://example.com/just-write/"
+            "</guid>",
+            content,
+        )
+
+    @override_settings(ALLOWED_HOSTS=["example.com"])
+    def test_rss_uses_canonical_guid_for_posts_not_in_legacy_feed(self):
+        self.make_post(slug="new-django-post")
+
+        response = self.client.get(
+            reverse("blog:rss"),
+            secure=True,
+            HTTP_HOST="example.com",
+        )
+        content = response.content.decode("utf-8")
+
+        self.assertIn("<link>https://example.com/new-django-post/</link>", content)
+        self.assertIn(
+            '<guid isPermaLink="true">'
+            "https://example.com/new-django-post/"
+            "</guid>",
+            content,
+        )
+        self.assertNotIn("https://example.com/posts/new-django-post/", content)
+
 
 class PostAdminTests(TestCase):
+    def test_reserved_slugs_are_rejected_by_admin_validation(self):
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("admin:blog_post_add"),
+            {
+                "title": "About",
+                "slug": "about",
+                "body": "This slug conflicts with a site route.",
+                "description": "",
+                "status": Post.DRAFT,
+                "_save": "Save",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(
+            response.context["adminform"].form,
+            "slug",
+            "This slug is reserved for a site route.",
+        )
+
     def test_publish_posts_action_publishes_selected_drafts_now(self):
         post = Post.objects.create(
             title="Draft post",

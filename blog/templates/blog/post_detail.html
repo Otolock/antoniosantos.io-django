@@ -4,6 +4,10 @@
 {{ post.title }}
 {% endblock %}
 
+{% block head %}
+<link rel="canonical" href="{{ canonical_url }}">
+{% endblock %}
+
 {% block content %}
 <article class="space-y-8">
     <header class="space-y-3">

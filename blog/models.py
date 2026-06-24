@@ -1,6 +1,24 @@
+from django.core.exceptions import ValidationError
 from django.db import models
+from django.urls import reverse
 from django.utils import timezone
 from markdown import markdown
+
+
+RESERVED_POST_SLUGS = {
+    "about",
+    "now",
+    "archive",
+    "rss",
+    "feed",
+    "admin",
+    "login",
+    "logout",
+    "subscribe",
+    "search",
+    "sitemap.xml",
+    "robots.txt",
+}
 
 
 class Post(models.Model):
@@ -33,6 +51,16 @@ class Post(models.Model):
 
     def __str__(self):
         return self.title
+
+    def clean(self):
+        super().clean()
+        if self.slug and self.slug.lower() in RESERVED_POST_SLUGS:
+            raise ValidationError(
+                {"slug": "This slug is reserved for a site route."}
+            )
+
+    def get_absolute_url(self):
+        return reverse("blog:post_detail", args=[self.slug])
 
     @property
     def body_html(self):

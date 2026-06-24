@@ -66,4 +66,15 @@ def post_detail(request, slug):
         status=Post.PUBLISHED,
         published_at__lte=timezone.now(),
     )
-    return render(request, "blog/post_detail.html", {"post": post})
+    return render(
+        request,
+        "blog/post_detail.html",
+        {
+            "post": post,
+            "canonical_url": request.build_absolute_uri(post.get_absolute_url()),
+        },
+    )
+
+
+def legacy_post_redirect(request, slug):
+    return redirect("blog:post_detail", slug=slug, permanent=True)
