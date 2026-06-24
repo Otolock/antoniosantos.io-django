@@ -5,9 +5,15 @@
   :root, :host {
     --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
       "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
       "Courier New", monospace;
+    --color-emerald-50: oklch(97.9% 0.021 166.113);
+    --color-emerald-400: oklch(76.5% 0.177 163.223);
+    --color-emerald-900: oklch(37.8% 0.077 168.94);
+    --color-cyan-50: oklch(98.4% 0.019 200.873);
     --color-cyan-200: oklch(91.7% 0.08 205.041);
+    --color-cyan-900: oklch(39.8% 0.07 227.392);
     --color-sky-50: oklch(97.7% 0.013 236.62);
     --color-sky-100: oklch(95.1% 0.026 236.824);
     --color-sky-200: oklch(90.1% 0.058 230.902);
@@ -15,9 +21,38 @@
     --color-sky-700: oklch(50% 0.134 242.749);
     --color-sky-900: oklch(39.1% 0.09 240.876);
     --color-sky-950: oklch(29.3% 0.066 243.157);
+    --color-blue-50: oklch(97% 0.014 254.604);
+    --color-blue-400: oklch(70.7% 0.165 254.624);
+    --color-blue-500: oklch(62.3% 0.214 259.815);
+    --color-blue-700: oklch(48.8% 0.243 264.376);
+    --color-blue-900: oklch(37.9% 0.146 265.522);
+    --color-indigo-50: oklch(96.2% 0.018 272.314);
+    --color-indigo-500: oklch(58.5% 0.233 277.117);
+    --color-indigo-700: oklch(45.7% 0.24 277.023);
+    --color-indigo-900: oklch(35.9% 0.144 278.697);
+    --color-slate-50: oklch(98.4% 0.003 247.858);
+    --color-slate-400: oklch(70.4% 0.04 256.788);
+    --color-slate-900: oklch(20.8% 0.042 265.755);
+    --color-gray-50: oklch(98.5% 0.002 247.839);
+    --color-gray-300: oklch(87.2% 0.01 258.338);
+    --color-gray-400: oklch(70.7% 0.022 261.325);
+    --color-gray-500: oklch(55.1% 0.027 264.364);
+    --color-gray-700: oklch(37.3% 0.034 259.733);
+    --color-gray-900: oklch(21% 0.034 264.665);
+    --color-zinc-50: oklch(98.5% 0 0);
+    --color-zinc-400: oklch(70.5% 0.015 286.067);
+    --color-zinc-900: oklch(21% 0.006 285.885);
+    --color-neutral-50: oklch(98.5% 0 0);
+    --color-neutral-400: oklch(70.8% 0 0);
+    --color-neutral-900: oklch(20.5% 0 0);
+    --color-stone-50: oklch(98.5% 0.001 106.423);
+    --color-stone-900: oklch(21.6% 0.006 56.043);
+    --color-mist-400: oklch(72.3% 0.014 214.4);
+    --color-mist-900: oklch(21.8% 0.008 223.9);
     --color-white: #fff;
     --spacing: 0.25rem;
     --container-2xl: 42rem;
+    --container-4xl: 56rem;
     --text-sm: 0.875rem;
     --text-sm--line-height: calc(1.25 / 0.875);
     --text-lg: 1.125rem;
@@ -184,6 +219,17 @@
   }
 }
 @layer utilities {
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border-width: 0;
+  }
   .static {
     position: static;
   }
@@ -629,11 +675,20 @@
   .w-32 {
     width: calc(var(--spacing) * 32);
   }
+  .w-40 {
+    width: calc(var(--spacing) * 40);
+  }
   .w-full {
     width: 100%;
   }
   .max-w-2xl {
     max-width: var(--container-2xl);
+  }
+  .max-w-4xl {
+    max-width: var(--container-4xl);
+  }
+  .min-w-0 {
+    min-width: 0;
   }
   .flex-1 {
     flex: 1;
@@ -641,8 +696,29 @@
   .shrink-0 {
     flex-shrink: 0;
   }
+  .list-inside {
+    list-style-position: inside;
+  }
+  .list-disc {
+    list-style-type: disc;
+  }
   .flex-col {
     flex-direction: column;
+  }
+  .flex-row {
+    flex-direction: row;
+  }
+  .flex-wrap {
+    flex-wrap: wrap;
+  }
+  .items-center {
+    align-items: center;
+  }
+  .gap-2 {
+    gap: calc(var(--spacing) * 2);
+  }
+  .gap-3 {
+    gap: calc(var(--spacing) * 3);
   }
   .gap-4 {
     gap: calc(var(--spacing) * 4);
@@ -689,6 +765,13 @@
       margin-block-end: calc(calc(var(--spacing) * 8) * calc(1 - var(--tw-space-y-reverse)));
     }
   }
+  .space-x-4 {
+    :where(& > :not(:last-child)) {
+      --tw-space-x-reverse: 0;
+      margin-inline-start: calc(calc(var(--spacing) * 4) * var(--tw-space-x-reverse));
+      margin-inline-end: calc(calc(var(--spacing) * 4) * calc(1 - var(--tw-space-x-reverse)));
+    }
+  }
   .rounded {
     border-radius: 0.25rem;
   }
@@ -700,6 +783,10 @@
     border-top-style: var(--tw-border-style);
     border-top-width: 1px;
   }
+  .border-b {
+    border-bottom-style: var(--tw-border-style);
+    border-bottom-width: 1px;
+  }
   .border-l-4 {
     border-left-style: var(--tw-border-style);
     border-left-width: 4px;
@@ -707,11 +794,44 @@
   .border-cyan-200 {
     border-color: var(--color-cyan-200);
   }
+  .border-gray-700 {
+    border-color: var(--color-gray-700);
+  }
   .border-sky-700 {
     border-color: var(--color-sky-700);
   }
+  .bg-blue-400 {
+    background-color: var(--color-blue-400);
+  }
+  .bg-blue-900 {
+    background-color: var(--color-blue-900);
+  }
   .bg-cyan-200 {
     background-color: var(--color-cyan-200);
+  }
+  .bg-cyan-900 {
+    background-color: var(--color-cyan-900);
+  }
+  .bg-emerald-400 {
+    background-color: var(--color-emerald-400);
+  }
+  .bg-emerald-900 {
+    background-color: var(--color-emerald-900);
+  }
+  .bg-gray-900 {
+    background-color: var(--color-gray-900);
+  }
+  .bg-indigo-900 {
+    background-color: var(--color-indigo-900);
+  }
+  .bg-mist-400 {
+    background-color: var(--color-mist-400);
+  }
+  .bg-neutral-400 {
+    background-color: var(--color-neutral-400);
+  }
+  .bg-neutral-900 {
+    background-color: var(--color-neutral-900);
   }
   .bg-sky-900 {
     background-color: var(--color-sky-900);
@@ -719,14 +839,38 @@
   .bg-sky-950 {
     background-color: var(--color-sky-950);
   }
+  .bg-slate-400 {
+    background-color: var(--color-slate-400);
+  }
+  .bg-slate-900 {
+    background-color: var(--color-slate-900);
+  }
+  .bg-stone-900 {
+    background-color: var(--color-stone-900);
+  }
+  .bg-transparent {
+    background-color: transparent;
+  }
+  .bg-zinc-400 {
+    background-color: var(--color-zinc-400);
+  }
+  .bg-zinc-900 {
+    background-color: var(--color-zinc-900);
+  }
   .object-cover {
     object-fit: cover;
+  }
+  .px-1 {
+    padding-inline: var(--spacing);
   }
   .px-3 {
     padding-inline: calc(var(--spacing) * 3);
   }
   .px-4 {
     padding-inline: calc(var(--spacing) * 4);
+  }
+  .py-0\.5 {
+    padding-block: calc(var(--spacing) * 0.5);
   }
   .py-2 {
     padding-block: calc(var(--spacing) * 2);
@@ -748,6 +892,9 @@
   }
   .font-sans {
     font-family: var(--font-sans);
+  }
+  .font-serif {
+    font-family: var(--font-serif);
   }
   .text-2xl {
     font-size: var(--text-2xl);
@@ -781,8 +928,53 @@
     --tw-tracking: var(--tracking-tight);
     letter-spacing: var(--tracking-tight);
   }
+  .text-blue-50 {
+    color: var(--color-blue-50);
+  }
+  .text-blue-500 {
+    color: var(--color-blue-500);
+  }
+  .text-blue-900 {
+    color: var(--color-blue-900);
+  }
+  .text-cyan-50 {
+    color: var(--color-cyan-50);
+  }
   .text-cyan-200 {
     color: var(--color-cyan-200);
+  }
+  .text-emerald-50 {
+    color: var(--color-emerald-50);
+  }
+  .text-emerald-900 {
+    color: var(--color-emerald-900);
+  }
+  .text-gray-50 {
+    color: var(--color-gray-50);
+  }
+  .text-gray-300 {
+    color: var(--color-gray-300);
+  }
+  .text-gray-400 {
+    color: var(--color-gray-400);
+  }
+  .text-gray-500 {
+    color: var(--color-gray-500);
+  }
+  .text-indigo-50 {
+    color: var(--color-indigo-50);
+  }
+  .text-indigo-500 {
+    color: var(--color-indigo-500);
+  }
+  .text-mist-900 {
+    color: var(--color-mist-900);
+  }
+  .text-neutral-50 {
+    color: var(--color-neutral-50);
+  }
+  .text-neutral-900 {
+    color: var(--color-neutral-900);
   }
   .text-sky-50 {
     color: var(--color-sky-50);
@@ -795,6 +987,21 @@
   }
   .text-sky-950 {
     color: var(--color-sky-950);
+  }
+  .text-slate-50 {
+    color: var(--color-slate-50);
+  }
+  .text-slate-900 {
+    color: var(--color-slate-900);
+  }
+  .text-stone-50 {
+    color: var(--color-stone-50);
+  }
+  .text-zinc-50 {
+    color: var(--color-zinc-50);
+  }
+  .text-zinc-900 {
+    color: var(--color-zinc-900);
   }
   .uppercase {
     text-transform: uppercase;
@@ -831,6 +1038,20 @@
     &:hover {
       @media (hover: hover) {
         background-color: var(--color-white);
+      }
+    }
+  }
+  .hover\:text-blue-700 {
+    &:hover {
+      @media (hover: hover) {
+        color: var(--color-blue-700);
+      }
+    }
+  }
+  .hover\:text-indigo-700 {
+    &:hover {
+      @media (hover: hover) {
+        color: var(--color-indigo-700);
       }
     }
   }
@@ -1086,40 +1307,12 @@
     }
   }
 }
-@layer utilities {
-  .post-prose {
-    --tw-prose-body: var(--color-sky-100);
-    --tw-prose-headings: var(--color-sky-50);
-    --tw-prose-lead: var(--color-sky-100);
-    --tw-prose-links: var(--color-cyan-200);
-    --tw-prose-bold: var(--color-white);
-    --tw-prose-counters: var(--color-sky-200);
-    --tw-prose-bullets: var(--color-sky-200);
-    --tw-prose-hr: color-mix(in srgb, oklch(50% 0.134 242.749) 70%, transparent);
-    @supports (color: color-mix(in lab, red, red)) {
-      --tw-prose-hr: color-mix(in oklab, var(--color-sky-700) 70%, transparent);
-    }
-    --tw-prose-quotes: var(--color-sky-50);
-    --tw-prose-quote-borders: var(--color-sky-700);
-    --tw-prose-captions: var(--color-sky-200);
-    --tw-prose-kbd: var(--color-white);
-    --tw-prose-code: var(--color-sky-50);
-    --tw-prose-pre-code: var(--color-sky-100);
-    --tw-prose-pre-bg: color-mix(in srgb, oklch(39.1% 0.09 240.876) 65%, black);
-    @supports (color: color-mix(in lab, red, red)) {
-      --tw-prose-pre-bg: color-mix(in oklab, var(--color-sky-900) 65%, black);
-    }
-    --tw-prose-th-borders: var(--color-sky-700);
-    --tw-prose-td-borders: color-mix(in srgb, oklch(50% 0.134 242.749) 70%, transparent);
-    @supports (color: color-mix(in lab, red, red)) {
-      --tw-prose-td-borders: color-mix(in oklab, var(--color-sky-700) 70%, transparent);
-    }
-  }
-  .post-prose :where(a):hover {
-    color: var(--color-white);
-  }
-}
 @property --tw-space-y-reverse {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0;
+}
+@property --tw-space-x-reverse {
   syntax: "*";
   inherits: false;
   initial-value: 0;
@@ -1210,6 +1403,7 @@
   @supports ((-webkit-hyphens: none) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color:rgb(from red r g b)))) {
     *, ::before, ::after, ::backdrop {
       --tw-space-y-reverse: 0;
+      --tw-space-x-reverse: 0;
       --tw-border-style: solid;
       --tw-leading: initial;
       --tw-font-weight: initial;

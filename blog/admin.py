@@ -79,7 +79,12 @@ class PostAdmin(admin.ModelAdmin):
 
     @admin.action(description="Publish selected posts")
     def publish_posts(self, request, queryset):
-        queryset.update(status=Post.PUBLISHED, published_at=timezone.now())
+        publish_time = timezone.now()
+        queryset.filter(published_at__isnull=True).update(
+            status=Post.PUBLISHED,
+            published_at=publish_time,
+        )
+        queryset.filter(published_at__isnull=False).update(status=Post.PUBLISHED)
 
     @admin.action(description="Unpublish selected posts")
     def unpublish_posts(self, request, queryset):

@@ -54,6 +54,15 @@ class Post(models.Model):
     def __str__(self):
         return self.title
 
+    def save(self, *args, **kwargs):
+        if self.status == self.PUBLISHED and self.published_at is None:
+            self.published_at = timezone.now()
+            update_fields = kwargs.get("update_fields")
+            if update_fields is not None:
+                kwargs["update_fields"] = set(update_fields) | {"published_at"}
+
+        super().save(*args, **kwargs)
+
     def clean(self):
         super().clean()
         if self.slug and self.slug.lower() in RESERVED_POST_SLUGS:

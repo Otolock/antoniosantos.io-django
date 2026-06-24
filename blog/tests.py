@@ -44,8 +44,13 @@ class PostTests(TestCase):
         )
         unpublished_post = self.make_post(
             slug="unpublished",
+            status=Post.DRAFT,
+        )
+        Post.objects.filter(pk=unpublished_post.pk).update(
+            status=Post.PUBLISHED,
             published_at=None,
         )
+        unpublished_post.refresh_from_db()
 
         self.assertTrue(live_post.is_published)
         self.assertFalse(draft_post.is_published)
@@ -63,6 +68,39 @@ class PostTests(TestCase):
             post.full_clean()
 
         self.assertIn("slug", context.exception.error_dict)
+
+    def test_save_sets_publish_date_when_published_without_date(self):
+        post = self.make_post(
+            status=Post.DRAFT,
+            published_at=None,
+        )
+
+        before_save = timezone.now()
+        post.status = Post.PUBLISHED
+        post.save()
+        after_save = timezone.now()
+
+        post.refresh_from_db()
+        self.assertGreaterEqual(post.published_at, before_save)
+        self.assertLessEqual(post.published_at, after_save)
+
+    def test_save_preserves_existing_publish_date_when_published(self):
+        for published_at in [
+            timezone.now() - timezone.timedelta(days=30),
+            timezone.now() + timezone.timedelta(days=1),
+        ]:
+            with self.subTest(published_at=published_at):
+                post = self.make_post(
+                    slug=f"dated-post-{published_at:%s}",
+                    status=Post.DRAFT,
+                    published_at=published_at,
+                )
+
+                post.status = Post.PUBLISHED
+                post.save()
+
+                post.refresh_from_db()
+                self.assertEqual(post.published_at, published_at)
 
 
 class PostViewTests(TestCase):
@@ -575,6 +613,43 @@ class PostAdminTests(TestCase):
         self.assertTrue(media.file.name.startswith("blog/media/"))
         self.assertEqual(media.markdown_snippet, "![A bright sky](/media/custom-hero/)")
 
+    def test_admin_save_sets_publish_date_when_published_without_date(self):
+        post = Post.objects.create(
+            title="Draft post",
+            slug="draft-post",
+            body="Draft body",
+            status=Post.DRAFT,
+            published_at=None,
+        )
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        before_save = timezone.now()
+        response = self.client.post(
+            reverse("admin:blog_post_change", args=[post.pk]),
+            {
+                "title": "Draft post",
+                "slug": "draft-post",
+                "body": "Draft body",
+                "description": "",
+                "status": Post.PUBLISHED,
+                "published_at_0": "",
+                "published_at_1": "",
+                "_save": "Save",
+            },
+        )
+        after_save = timezone.now()
+
+        self.assertEqual(response.status_code, 302)
+        post.refresh_from_db()
+        self.assertEqual(post.status, Post.PUBLISHED)
+        self.assertGreaterEqual(post.published_at, before_save)
+        self.assertLessEqual(post.published_at, after_save)
+
     def test_publish_posts_action_publishes_selected_drafts_now(self):
         post = Post.objects.create(
             title="Draft post",
@@ -591,6 +666,37 @@ class PostAdminTests(TestCase):
         self.assertEqual(post.status, Post.PUBLISHED)
         self.assertIsNotNone(post.published_at)
         self.assertTrue(post.is_published)
+
+    def test_publish_posts_action_preserves_existing_publish_dates(self):
+        backdated_at = timezone.now() - timezone.timedelta(days=30)
+        scheduled_at = timezone.now() + timezone.timedelta(days=1)
+        backdated_post = Post.objects.create(
+            title="Backdated post",
+            slug="backdated-post",
+            body="Backdated body",
+            status=Post.DRAFT,
+            published_at=backdated_at,
+        )
+        scheduled_post = Post.objects.create(
+            title="Scheduled post",
+            slug="scheduled-post",
+            body="Scheduled body",
+            status=Post.DRAFT,
+            published_at=scheduled_at,
+        )
+        model_admin = PostAdmin(Post, admin.site)
+
+        model_admin.publish_posts(
+            None,
+            Post.objects.filter(pk__in=[backdated_post.pk, scheduled_post.pk]),
+        )
+
+        backdated_post.refresh_from_db()
+        scheduled_post.refresh_from_db()
+        self.assertEqual(backdated_post.status, Post.PUBLISHED)
+        self.assertEqual(backdated_post.published_at, backdated_at)
+        self.assertEqual(scheduled_post.status, Post.PUBLISHED)
+        self.assertEqual(scheduled_post.published_at, scheduled_at)
 
     def test_unpublish_posts_action_switches_selected_posts_to_draft(self):
         post = Post.objects.create(
