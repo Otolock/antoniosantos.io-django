@@ -9,15 +9,22 @@
 {% endblock %}
 
 {% block content %}
-<article class="space-y-8">
+<article class="h-entry space-y-8">
     <header class="space-y-3">
-        <h1 class="text-4xl font-bold tracking-tight">{{ post.title }}</h1>
+        <h1 class="p-name text-4xl font-bold tracking-tight">{{ post.title }}</h1>
         <p class="font-mono text-sm text-sky-200">
-            {{ post.published_at|date:"F j, Y" }}
+            <time class="dt-published" datetime="{{ post.published_at|date:'c' }}">
+                {{ post.published_at|date:"F j, Y" }}
+            </time>
+            <data class="u-url" value="{{ canonical_url }}"></data>
+            <span class="p-author h-card"><data class="p-name" value="Antonio Santos"></data><data class="u-url" value="{% url 'blog:home' %}"></data></span>
+            {% if post.description %}
+                <data class="p-summary" value="{{ post.description }}"></data>
+            {% endif %}
         </p>
     </header>
 
-    <div class="prose prose-invert post-prose lg:prose-xl">
+    <div class="e-content prose prose-invert post-prose lg:prose-xl">
         {{ post.body_html|safe }}
     </div>
 </article>

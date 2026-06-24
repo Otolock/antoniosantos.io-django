@@ -12,21 +12,23 @@ Archive
     </p>
 </section>
 
-<section class="space-y-4">
+<section class="h-feed space-y-4">
     {% for post in posts %}
-        <article class="space-y-1 border-t border-sky-700 pt-4">
+        <article class="h-entry space-y-1 border-t border-sky-700 pt-4">
             <p class="font-mono text-sm text-sky-200">
-                {{ post.published_at|date:"F j, Y" }}
+                <time class="dt-published" datetime="{{ post.published_at|date:'c' }}">
+                    {{ post.published_at|date:"F j, Y" }}
+                </time>
             </p>
 
             <h2 class="text-lg">
-                <a class="text-cyan-200 hover:text-white" href="{% url 'blog:post_detail' post.slug %}">
+                <a class="p-name u-url text-cyan-200 hover:text-white" href="{% url 'blog:post_detail' post.slug %}">
                     {{ post.title }}
                 </a>
             </h2>
 
             {% if post.description %}
-                <p>{{ post.description }}</p>
+                <p class="p-summary">{{ post.description }}</p>
             {% endif %}
         </article>
     {% empty %}

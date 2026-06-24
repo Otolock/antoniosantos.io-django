@@ -147,11 +147,24 @@ class PostViewTests(TestCase):
 
         response = self.client.get(reverse("blog:home"))
 
-        self.assertContains(response, "I'm Antonio")
+        self.assertContains(response, "Hi, I'm")
+        self.assertContains(response, "Antonio Santos")
         self.assertContains(response, reverse("blog:archive"))
         for index in range(5):
             self.assertContains(response, f"Post {index + 1}")
         self.assertNotContains(response, "Post 6")
+
+    def test_home_marks_latest_posts_as_microformats_feed_entries(self):
+        self.make_post()
+
+        response = self.client.get(reverse("blog:home"))
+
+        self.assertContains(response, 'class="h-feed space-y-4"')
+        self.assertContains(response, 'class="p-name text-xl font-bold uppercase"')
+        self.assertContains(response, 'class="h-entry space-y-1"')
+        self.assertContains(response, 'class="p-name u-url text-cyan-200 hover:text-white"')
+        self.assertContains(response, 'class="dt-published"')
+        self.assertContains(response, 'class="p-summary"')
 
     def test_archive_lists_all_published_posts_with_current_publish_dates(self):
         self.make_post()
@@ -178,6 +191,20 @@ class PostViewTests(TestCase):
         self.assertNotContains(response, "Draft post")
         self.assertNotContains(response, "Scheduled post")
 
+    def test_archive_marks_posts_as_microformats_feed_entries(self):
+        self.make_post()
+
+        response = self.client.get(reverse("blog:archive"))
+
+        self.assertContains(response, 'class="h-feed space-y-4"')
+        self.assertContains(
+            response,
+            'class="h-entry space-y-1 border-t border-sky-700 pt-4"',
+        )
+        self.assertContains(response, 'class="dt-published"')
+        self.assertContains(response, 'class="p-name u-url text-cyan-200 hover:text-white"')
+        self.assertContains(response, 'class="p-summary"')
+
     def test_post_detail_renders_live_post_markdown(self):
         self.make_post()
 
@@ -187,6 +214,41 @@ class PostViewTests(TestCase):
 
         self.assertContains(response, "Live post")
         self.assertContains(response, "<strong>world</strong>")
+
+    def test_post_detail_marks_post_as_microformats_entry(self):
+        self.make_post()
+
+        response = self.client.get(
+            reverse("blog:post_detail", args=["live-post"])
+        )
+
+        self.assertContains(response, 'class="h-entry space-y-8"')
+        self.assertContains(response, 'class="p-name text-4xl font-bold tracking-tight"')
+        self.assertContains(response, 'class="p-author h-card"')
+        self.assertNotContains(response, "Published by")
+        self.assertNotContains(response, 'class="u-url text-cyan-200 hover:text-white"')
+        self.assertContains(response, 'class="u-url" value="http://testserver/live-post/"')
+        self.assertContains(response, 'class="dt-published"')
+        self.assertContains(response, 'class="p-summary" value="A live post"')
+        self.assertContains(response, 'class="e-content prose prose-invert post-prose lg:prose-xl"')
+
+    def test_home_bio_includes_author_h_card(self):
+        self.make_post()
+
+        response = self.client.get(reverse("blog:home"))
+
+        self.assertContains(response, 'class="h-card space-y-2"')
+        self.assertContains(response, 'class="p-name"')
+        self.assertContains(response, 'class="u-url" value="/"')
+        self.assertContains(response, "Antonio Santos")
+
+    def test_now_page_marks_content_as_microformats_entry(self):
+        response = self.client.get(reverse("blog:now"))
+
+        self.assertContains(response, 'class="h-entry my-4 space-y-4"')
+        self.assertContains(response, 'class="p-name text-2xl font-bold"')
+        self.assertContains(response, 'class="dt-updated"')
+        self.assertContains(response, 'datetime="2026-06-24"')
 
     def test_post_detail_resolves_at_root_level_slug_url(self):
         self.make_post()
