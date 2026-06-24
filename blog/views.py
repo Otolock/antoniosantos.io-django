@@ -20,6 +20,9 @@ def archive(request):
     posts = published_posts()
     return render(request, "blog/archive.html", {"posts": posts})
 
+def now(request):
+    return render(request, "blog/now.html")
+
 
 def post_detail(request, slug):
     post = get_object_or_404(
