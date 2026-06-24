@@ -1,8 +1,12 @@
 from django.contrib import admin
+from django.contrib.auth import get_user_model
+from django.test import override_settings
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
+from unittest.mock import patch
 
+from . import llm
 from .admin import PostAdmin
 from .models import Post
 
@@ -218,3 +222,114 @@ class PostAdminTests(TestCase):
         self.assertEqual(post.status, Post.DRAFT)
         self.assertIsNone(post.published_at)
         self.assertFalse(post.is_published)
+
+    @override_settings(OPENROUTER_API_KEY="test-key")
+    @patch("blog.admin.generate_post_description", return_value="Generated description")
+    def test_generate_descriptions_action_updates_selected_posts(self, mock_generate):
+        post = Post.objects.create(
+            title="Draft post",
+            slug="draft-post",
+            body="Draft body",
+            status=Post.DRAFT,
+            published_at=None,
+        )
+        model_admin = PostAdmin(Post, admin.site)
+
+        with patch.object(model_admin, "message_user"):
+            model_admin.generate_descriptions(None, Post.objects.filter(pk=post.pk))
+
+        post.refresh_from_db()
+        self.assertEqual(post.description, "Generated description")
+        mock_generate.assert_called_once_with(post)
+
+    @override_settings(OPENROUTER_API_KEY="test-key")
+    @patch("blog.admin.generate_post_description", return_value="Generated description")
+    def test_generate_description_admin_view_updates_post(self, mock_generate):
+        post = Post.objects.create(
+            title="Draft post",
+            slug="draft-post",
+            body="Draft body",
+            status=Post.DRAFT,
+            published_at=None,
+        )
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("admin:blog_post_generate_description", args=[post.pk])
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("admin:blog_post_change", args=[post.pk]),
+        )
+        post.refresh_from_db()
+        self.assertEqual(post.description, "Generated description")
+        mock_generate.assert_called_once_with(post)
+
+
+class DescriptionGenerationTests(TestCase):
+    def make_post(self, **kwargs):
+        defaults = {
+            "title": "A small note",
+            "slug": "a-small-note",
+            "body": "This is the body of the post.",
+        }
+        defaults.update(kwargs)
+        return Post(**defaults)
+
+    @override_settings(
+        OPENROUTER_API_KEY="test-key",
+        OPENROUTER_MODEL="test/model",
+        POST_DESCRIPTION_TARGET_CHARS=155,
+    )
+    @patch("blog.llm.urllib.request.urlopen")
+    def test_generate_post_description_calls_openrouter(self, mock_urlopen):
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc_value, traceback):
+                return False
+
+            def read(self):
+                return b'{"choices":[{"message":{"content":"A clear summary."}}]}'
+
+        mock_urlopen.return_value = FakeResponse()
+
+        description = llm.generate_post_description(self.make_post())
+
+        self.assertEqual(description, "A clear summary.")
+        request = mock_urlopen.call_args.args[0]
+        payload = json_from_request(request)
+        self.assertEqual(payload["model"], "test/model")
+        self.assertIn("A small note", payload["messages"][1]["content"])
+        self.assertIn("This is the body", payload["messages"][1]["content"])
+        self.assertIn("Write in my voice", payload["messages"][0]["content"])
+        self.assertIn("never in third person", payload["messages"][0]["content"])
+        self.assertIn("Do not refer to me as the author", payload["messages"][1]["content"])
+        self.assertIn("use first person", payload["messages"][1]["content"])
+
+    @override_settings(OPENROUTER_API_KEY="")
+    def test_generate_post_description_requires_api_key(self):
+        with self.assertRaises(llm.DescriptionGenerationError):
+            llm.generate_post_description(self.make_post())
+
+    @override_settings(POST_DESCRIPTION_TARGET_CHARS=20)
+    def test_truncate_description_keeps_result_under_limit(self):
+        description = llm._truncate_description(
+            "This description is intentionally too long.",
+            20,
+        )
+
+        self.assertLessEqual(len(description), 20)
+
+
+def json_from_request(request):
+    import json
+
+    return json.loads(request.data.decode("utf-8"))

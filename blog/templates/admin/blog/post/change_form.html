@@ -1,0 +1,13 @@
+{% extends "admin/change_form.html" %}
+
+{% block object-tools-items %}
+    {% if change and original %}
+        <li>
+            <form method="post" action="{% url 'admin:blog_post_generate_description' original.pk %}">
+                {% csrf_token %}
+                <button class="button" type="submit">Generate description</button>
+            </form>
+        </li>
+    {% endif %}
+    {{ block.super }}
+{% endblock %}
