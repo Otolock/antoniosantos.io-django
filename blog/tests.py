@@ -12,6 +12,7 @@ from unittest.mock import patch
 
 from . import llm
 from .admin import PostAdmin
+from .feeds import LEGACY_RSS_GUID_SLUGS
 from .models import Post, PostMedia, Subscriber
 
 
@@ -497,6 +498,28 @@ class MicropubTests(TestCase):
 
 
 class LatestPostsFeedTests(TestCase):
+    ATTACHED_FEED_GUID_SLUGS = [
+        "i-don-t-need-it-and-neither-do-you",
+        "a-letter-of-appreciation-to-fiction-writers",
+        "i-turned-off-estimated-read-time",
+        "getting-away-from-the-algorithm",
+        "blog-design-refinements",
+        "playing-around-as-a-sysadmin",
+        "goodbye-hermes",
+        "don-t-be-afraid-to-have-a-voice",
+        "hands-on-with-fable-5",
+        "im-done-picking-a-niche",
+        "just-write",
+        "agentic-ai-isnt-just-coding",
+        "building-with-local-models",
+        "learning-with-ai",
+        "gemma-4-e4b-local-coding-assistant",
+        "threads-spotlight-vol-1",
+        "writing-at-the-speed-of-thought-27-days-with-wispr-flow",
+        "my-ai-designed-site-was-perfect-and-that-was-the-problem",
+        "design-breakdown-hero-accounting-firm",
+    ]
+
     def make_post(self, **kwargs):
         defaults = {
             "title": "Live post",
@@ -567,6 +590,42 @@ class LatestPostsFeedTests(TestCase):
             "</guid>",
             content,
         )
+
+    @override_settings(ALLOWED_HOSTS=["antoniosantos.io"])
+    def test_rss_guid_set_matches_pre_migration_feed(self):
+        self.assertEqual(
+            LEGACY_RSS_GUID_SLUGS,
+            set(self.ATTACHED_FEED_GUID_SLUGS),
+        )
+
+        now = timezone.now()
+        for index, slug in enumerate(self.ATTACHED_FEED_GUID_SLUGS):
+            self.make_post(
+                slug=slug,
+                title=slug,
+                published_at=now - timezone.timedelta(minutes=index),
+            )
+
+        response = self.client.get(
+            reverse("blog:rss"),
+            secure=True,
+            HTTP_HOST="antoniosantos.io",
+        )
+        content = response.content.decode("utf-8")
+
+        for slug in self.ATTACHED_FEED_GUID_SLUGS:
+            self.assertIn(
+                '<guid isPermaLink="true">'
+                f"https://antoniosantos.io/posts/{slug}/"
+                "</guid>",
+                content,
+            )
+            self.assertNotIn(
+                '<guid isPermaLink="true">'
+                f"https://antoniosantos.io/{slug}/"
+                "</guid>",
+                content,
+            )
 
     @override_settings(ALLOWED_HOSTS=["example.com"])
     def test_rss_uses_canonical_guid_for_posts_not_in_legacy_feed(self):
