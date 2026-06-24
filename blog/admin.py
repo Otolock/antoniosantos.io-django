@@ -5,7 +5,14 @@ from django.urls import path, reverse
 from django.utils import timezone
 
 from .llm import DescriptionGenerationError, generate_post_description
-from .models import Post
+from .models import Post, Subscriber
+
+
+@admin.register(Subscriber)
+class SubscriberAdmin(admin.ModelAdmin):
+    list_display = ["email", "created_at", "source_path"]
+    search_fields = ["email", "source_path"]
+    readonly_fields = ["created_at"]
 
 
 @admin.register(Post)

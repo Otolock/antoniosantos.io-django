@@ -10,5 +10,6 @@ urlpatterns = [
     path("archive/", views.archive, name="archive"),
     path("now/", views.now, name="now"),
     path("rss.xml", LatestPostsFeed(), name="rss"),
+    path("subscribe/", views.subscribe, name="subscribe"),
     path("<slug:slug>/", views.post_detail, name="post_detail"),
 ]

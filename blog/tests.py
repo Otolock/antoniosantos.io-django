@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from . import llm
 from .admin import PostAdmin
-from .models import Post
+from .models import Post, Subscriber
 
 
 class PostTests(TestCase):
@@ -152,6 +152,63 @@ class PostViewTests(TestCase):
                     reverse("blog:post_detail", args=[slug])
                 )
                 self.assertEqual(response.status_code, 404)
+
+
+class SubscribeViewTests(TestCase):
+    def test_subscribe_page_shows_email_form(self):
+        response = self.client.get(reverse("blog:subscribe"))
+
+        self.assertContains(response, "Subscribe")
+        self.assertContains(response, 'type="email"')
+
+    def test_subscribe_adds_normalized_email_and_redirects_back(self):
+        response = self.client.post(
+            reverse("blog:subscribe"),
+            {
+                "email": " Reader@Example.COM ",
+                "next": reverse("blog:archive"),
+            },
+        )
+
+        self.assertRedirects(response, reverse("blog:archive"))
+        subscriber = Subscriber.objects.get()
+        self.assertEqual(subscriber.email, "reader@example.com")
+        self.assertEqual(subscriber.source_path, reverse("blog:archive"))
+
+    def test_subscribe_without_next_redirects_to_subscribe_page(self):
+        response = self.client.post(
+            reverse("blog:subscribe"),
+            {"email": "reader@example.com"},
+        )
+
+        self.assertRedirects(response, reverse("blog:subscribe"))
+        self.assertEqual(Subscriber.objects.get().email, "reader@example.com")
+
+    def test_subscribe_does_not_duplicate_existing_email(self):
+        Subscriber.objects.create(email="reader@example.com")
+
+        response = self.client.post(
+            reverse("blog:subscribe"),
+            {
+                "email": "READER@example.com",
+                "next": reverse("blog:home"),
+            },
+        )
+
+        self.assertRedirects(response, reverse("blog:home"))
+        self.assertEqual(Subscriber.objects.count(), 1)
+
+    def test_subscribe_rejects_invalid_email(self):
+        response = self.client.post(
+            reverse("blog:subscribe"),
+            {
+                "email": "not an email",
+                "next": reverse("blog:home"),
+            },
+        )
+
+        self.assertRedirects(response, reverse("blog:home"))
+        self.assertEqual(Subscriber.objects.count(), 0)
 
 
 class LatestPostsFeedTests(TestCase):

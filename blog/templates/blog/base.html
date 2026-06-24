@@ -19,9 +19,28 @@
         </nav>
     </header>
 
+    {% if messages %}
+        <section class="space-y-2" aria-label="Messages">
+            {% for message in messages %}
+                <p class="border-l-4 border-cyan-200 bg-sky-950 px-4 py-3 text-sm text-sky-50">
+                    {{ message }}
+                </p>
+            {% endfor %}
+        </section>
+    {% endif %}
+
     <main class="space-y-6">
         {% block content %}
         {% endblock %}
     </main>
+
+    <footer class="border-t border-sky-700 pt-6 text-sm text-sky-200">
+        <p>
+            Subscribe via
+            <a class="text-cyan-200 hover:text-white" href="{% url 'blog:subscribe' %}">email</a>
+            or
+            <a class="text-cyan-200 hover:text-white" href="{% url 'blog:rss' %}">RSS</a>
+        </p>
+    </footer>
 </body>
 </html>
