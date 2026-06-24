@@ -6,8 +6,12 @@
 
 {% block content %}
 <article>
-    <h1>{{ post.title }}</h1>
-
-    {{ post.body_html|safe }}
+    <h1 class="text-4xl font-bold tracking-tight">{{ post.title }}</h1>
+    <p class="text-sm text-gray-500">
+        {{ post.published_at|date:"F j, Y" }}
+    </p>
+    <div class="mt-4 prose lg:prose-xl">
+        {{ post.body_html|safe }}
+    </div>
 </article>
 {% endblock %}

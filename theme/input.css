@@ -1,0 +1,4 @@
+@import "tailwindcss" source(none);
+@plugin "@tailwindcss/typography";
+
+@source "../blog/templates";
