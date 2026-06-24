@@ -6,7 +6,7 @@ from . import views
 app_name = "blog"
 
 urlpatterns = [
-    path("", views.post_list, name="post_list"),
+    path("", views.home, name="home"),
     path("archive/", views.archive, name="archive"),
     path("now/", views.now, name="now"),
     path("rss.xml", LatestPostsFeed(), name="rss"),

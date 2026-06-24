@@ -59,7 +59,7 @@ class PostViewTests(TestCase):
         defaults.update(kwargs)
         return Post.objects.create(**defaults)
 
-    def test_post_list_only_shows_published_posts_with_current_publish_dates(self):
+    def test_home_only_shows_published_posts_with_current_publish_dates(self):
         self.make_post()
         self.make_post(
             title="Draft post",
@@ -72,13 +72,13 @@ class PostViewTests(TestCase):
             published_at=timezone.now() + timezone.timedelta(days=1),
         )
 
-        response = self.client.get(reverse("blog:post_list"))
+        response = self.client.get(reverse("blog:home"))
 
         self.assertContains(response, "Live post")
         self.assertNotContains(response, "Draft post")
         self.assertNotContains(response, "Scheduled post")
 
-    def test_post_list_shows_about_and_latest_five_posts(self):
+    def test_home_shows_about_and_latest_five_posts(self):
         now = timezone.now()
         for index in range(6):
             self.make_post(
@@ -87,7 +87,7 @@ class PostViewTests(TestCase):
                 published_at=now - timezone.timedelta(days=index),
             )
 
-        response = self.client.get(reverse("blog:post_list"))
+        response = self.client.get(reverse("blog:home"))
 
         self.assertContains(response, "I'm Antonio")
         self.assertContains(response, reverse("blog:archive"))

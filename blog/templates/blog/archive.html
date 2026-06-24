@@ -5,21 +5,32 @@ Archive
 {% endblock %}
 
 {% block content %}
-<h1>Archive</h1>
+<section class="space-y-2">
+    <h2 class="text-2xl font-bold">Archive</h2>
+    <p class="text-gray-300">
+        Every published post, newest first.
+    </p>
+</section>
 
-{% for post in posts %}
-    <article>
-        <h2>
-            <a href="{% url 'blog:post_detail' post.slug %}">
-                {{ post.title }}
-            </a>
-        </h2>
+<section class="space-y-4">
+    {% for post in posts %}
+        <article class="space-y-1 border-t border-gray-700 pt-4">
+            <p class="font-mono text-sm text-gray-500">
+                {{ post.published_at|date:"F j, Y" }}
+            </p>
 
-        {% if post.description %}
-            <p>{{ post.description }}</p>
-        {% endif %}
-    </article>
-{% empty %}
-    <p>No posts yet.</p>
-{% endfor %}
+            <h2 class="text-lg">
+                <a class="text-blue-500 hover:text-blue-700" href="{% url 'blog:post_detail' post.slug %}">
+                    {{ post.title }}
+                </a>
+            </h2>
+
+            {% if post.description %}
+                <p>{{ post.description }}</p>
+            {% endif %}
+        </article>
+    {% empty %}
+        <p>No posts yet.</p>
+    {% endfor %}
+</section>
 {% endblock %}

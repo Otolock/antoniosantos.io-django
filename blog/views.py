@@ -11,14 +11,15 @@ def published_posts():
     )
 
 
-def post_list(request):
+def home(request):
     posts = published_posts()[:5]
-    return render(request, "blog/post_list.html", {"posts": posts})
+    return render(request, "blog/home.html", {"posts": posts})
 
 
 def archive(request):
     posts = published_posts()
     return render(request, "blog/archive.html", {"posts": posts})
+
 
 def now(request):
     return render(request, "blog/now.html")
