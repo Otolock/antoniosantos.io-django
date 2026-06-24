@@ -18,12 +18,12 @@ Antonio's Blog
     {% for post in posts %}
         <article class="space-y-1">
             <h2 class="text-lg">
-                <a class="text-blue-500 hover:text-blue-700" href="{% url 'blog:post_detail' post.slug %}">
+                <a class="text-cyan-200 hover:text-white" href="{% url 'blog:post_detail' post.slug %}">
                     {{ post.title }}
                 </a>
             </h2>
 
-            <p class="font-mono text-sm text-gray-500">
+            <p class="font-mono text-sm text-sky-200">
                 {{ post.published_at|date:"F j, Y" }}
             </p>
 
@@ -37,7 +37,7 @@ Antonio's Blog
 </section>
 
 <p>
-    <a class="text-blue-500 hover:text-blue-700" href="{% url 'blog:archive' %}">View the archive</a> |
-    <a class="text-blue-500 hover:text-blue-700" href="{% url 'blog:rss' %}">Subscribe to the RSS feed</a>
+    <a class="text-cyan-200 hover:text-white" href="{% url 'blog:archive' %}">View the archive</a> |
+    <a class="text-cyan-200 hover:text-white" href="{% url 'blog:rss' %}">Subscribe to the RSS feed</a>
 </p>
 {% endblock %}

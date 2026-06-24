@@ -8,12 +8,12 @@
 <article class="space-y-8">
     <header class="space-y-3">
         <h1 class="text-4xl font-bold tracking-tight">{{ post.title }}</h1>
-        <p class="font-mono text-sm text-gray-400">
+        <p class="font-mono text-sm text-sky-200">
             {{ post.published_at|date:"F j, Y" }}
         </p>
     </header>
 
-    <div class="prose prose-invert lg:prose-xl">
+    <div class="prose prose-invert post-prose lg:prose-xl">
         {{ post.body_html|safe }}
     </div>
 </article>

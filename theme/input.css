@@ -2,3 +2,29 @@
 @plugin "@tailwindcss/typography";
 
 @source "../blog/templates";
+
+@layer utilities {
+  .post-prose {
+    --tw-prose-body: var(--color-sky-100);
+    --tw-prose-headings: var(--color-sky-50);
+    --tw-prose-lead: var(--color-sky-100);
+    --tw-prose-links: var(--color-cyan-200);
+    --tw-prose-bold: var(--color-white);
+    --tw-prose-counters: var(--color-sky-200);
+    --tw-prose-bullets: var(--color-sky-200);
+    --tw-prose-hr: color-mix(in oklab, var(--color-sky-700) 70%, transparent);
+    --tw-prose-quotes: var(--color-sky-50);
+    --tw-prose-quote-borders: var(--color-sky-700);
+    --tw-prose-captions: var(--color-sky-200);
+    --tw-prose-kbd: var(--color-white);
+    --tw-prose-code: var(--color-sky-50);
+    --tw-prose-pre-code: var(--color-sky-100);
+    --tw-prose-pre-bg: color-mix(in oklab, var(--color-sky-900) 65%, black);
+    --tw-prose-th-borders: var(--color-sky-700);
+    --tw-prose-td-borders: color-mix(in oklab, var(--color-sky-700) 70%, transparent);
+  }
+
+  .post-prose :where(a):hover {
+    color: var(--color-white);
+  }
+}
