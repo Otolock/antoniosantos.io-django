@@ -4,6 +4,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Antonio's Blog{% endblock %}</title>
     <link rel="micropub" href="{% url 'blog:micropub' %}">
     <link rel="stylesheet" href="{% static 'blog/style.css' %}">
@@ -11,39 +12,39 @@
     {% block head %}
     {% endblock %}
 </head>
-<body class="mx-auto max-w-2xl space-y-6 bg-sky-900 px-4 py-10 font-sans text-sky-50">
-    <header class="space-y-4">
-        <h1 class="text-4xl font-bold">Antonio's Blog</h1>
+<body class="site-shell">
+    <header class="site-header">
+        <h1 class="site-title">Antonio's Blog</h1>
 
-        <nav class="flex gap-4">
-            <a class="text-cyan-200 hover:text-white" href="{% url 'blog:home' %}">Home</a>
-            <a class="text-cyan-200 hover:text-white" href="{% url 'blog:now' %}">Now</a>
-            <a class="text-cyan-200 hover:text-white" href="{% url 'blog:archive' %}">Archive</a>
-            <a class="text-cyan-200 hover:text-white" href="{% url 'blog:rss' %}">RSS</a>
+        <nav class="site-nav" aria-label="Primary navigation">
+            <a href="{% url 'blog:home' %}">Home</a>
+            <a href="{% url 'blog:now' %}">Now</a>
+            <a href="{% url 'blog:archive' %}">Archive</a>
+            <a href="{% url 'blog:rss' %}">RSS</a>
         </nav>
     </header>
 
     {% if messages %}
         <section class="space-y-2" aria-label="Messages">
             {% for message in messages %}
-                <p class="border-l-4 border-cyan-200 bg-sky-950 px-4 py-3 text-sm text-sky-50">
+                <p class="message">
                     {{ message }}
                 </p>
             {% endfor %}
         </section>
     {% endif %}
 
-    <main class="space-y-6">
+    <main class="site-main">
         {% block content %}
         {% endblock %}
     </main>
 
-    <footer class="border-t border-sky-700 pt-6 text-sm text-sky-200">
+    <footer class="site-footer">
         <p>
             Subscribe via
-            <a class="text-cyan-200 hover:text-white" href="{% url 'blog:subscribe' %}">email</a>
+            <a href="{% url 'blog:subscribe' %}">email</a>
             or
-            <a class="text-cyan-200 hover:text-white" href="{% url 'blog:rss' %}">RSS</a>
+            <a href="{% url 'blog:rss' %}">RSS</a>
         </p>
     </footer>
 </body>

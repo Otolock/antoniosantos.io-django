@@ -160,10 +160,10 @@ class PostViewTests(TestCase):
 
         response = self.client.get(reverse("blog:home"))
 
-        self.assertContains(response, 'class="h-feed space-y-4"')
-        self.assertContains(response, 'class="p-name text-xl font-bold uppercase"')
-        self.assertContains(response, 'class="h-entry space-y-1"')
-        self.assertContains(response, 'class="p-name u-url text-cyan-200 hover:text-white"')
+        self.assertContains(response, 'class="h-feed post-list"')
+        self.assertContains(response, 'class="p-name section-heading"')
+        self.assertContains(response, 'class="h-entry post-list-item"')
+        self.assertContains(response, 'class="p-name u-url"')
         self.assertContains(response, 'class="dt-published"')
         self.assertContains(response, 'class="p-summary"')
 
@@ -197,13 +197,13 @@ class PostViewTests(TestCase):
 
         response = self.client.get(reverse("blog:archive"))
 
-        self.assertContains(response, 'class="h-feed space-y-4"')
+        self.assertContains(response, 'class="h-feed post-list"')
         self.assertContains(
             response,
-            'class="h-entry space-y-1 border-t border-sky-700 pt-4"',
+            'class="h-entry post-list-item with-divider"',
         )
         self.assertContains(response, 'class="dt-published"')
-        self.assertContains(response, 'class="p-name u-url text-cyan-200 hover:text-white"')
+        self.assertContains(response, 'class="p-name u-url"')
         self.assertContains(response, 'class="p-summary"')
 
     def test_post_detail_renders_live_post_markdown(self):
@@ -223,22 +223,22 @@ class PostViewTests(TestCase):
             reverse("blog:post_detail", args=["live-post"])
         )
 
-        self.assertContains(response, 'class="h-entry space-y-8"')
-        self.assertContains(response, 'class="p-name text-4xl font-bold tracking-tight"')
+        self.assertContains(response, 'class="h-entry post-entry"')
+        self.assertContains(response, 'class="p-name post-title"')
         self.assertContains(response, 'class="p-author h-card"')
         self.assertNotContains(response, "Published by")
         self.assertNotContains(response, 'class="u-url text-cyan-200 hover:text-white"')
         self.assertContains(response, 'class="u-url" value="http://testserver/live-post/"')
         self.assertContains(response, 'class="dt-published"')
         self.assertContains(response, 'class="p-summary" value="A live post"')
-        self.assertContains(response, 'class="e-content prose prose-invert post-prose lg:prose-xl"')
+        self.assertContains(response, 'class="e-content prose prose-invert post-prose"')
 
     def test_home_bio_includes_author_h_card(self):
         self.make_post()
 
         response = self.client.get(reverse("blog:home"))
 
-        self.assertContains(response, 'class="h-card space-y-2"')
+        self.assertContains(response, 'class="h-card intro-section"')
         self.assertContains(response, 'class="p-name"')
         self.assertContains(response, 'class="u-url" value="/"')
         self.assertContains(response, "Antonio Santos")
@@ -246,8 +246,8 @@ class PostViewTests(TestCase):
     def test_now_page_marks_content_as_microformats_entry(self):
         response = self.client.get(reverse("blog:now"))
 
-        self.assertContains(response, 'class="h-entry my-4 space-y-4"')
-        self.assertContains(response, 'class="p-name text-2xl font-bold"')
+        self.assertContains(response, 'class="h-entry now-page"')
+        self.assertContains(response, 'class="p-name page-heading"')
         self.assertContains(response, 'class="dt-updated"')
         self.assertContains(response, 'datetime="2026-06-24"')
 

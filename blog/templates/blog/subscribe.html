@@ -5,19 +5,18 @@ Subscribe
 {% endblock %}
 
 {% block content %}
-<section class="space-y-4">
-    <h2 class="text-2xl font-bold">Subscribe</h2>
+<section class="subscribe-section">
+    <h2 class="page-heading">Subscribe</h2>
 
-    <form class="space-y-3" action="{% url 'blog:subscribe' %}" method="post">
+    <form class="subscribe-form" action="{% url 'blog:subscribe' %}" method="post">
         {% csrf_token %}
         <input type="hidden" name="next" value="{% url 'blog:subscribe' %}">
 
-        <div class="space-y-1">
-            <label class="block text-sm text-sky-200" for="subscribe-email">
+        <div class="form-field">
+            <label for="subscribe-email">
                 Email address
             </label>
             <input
-                class="w-full rounded border border-sky-700 bg-sky-950 px-3 py-2 text-sky-50 placeholder:text-sky-300 focus:border-cyan-200 focus:outline-none"
                 id="subscribe-email"
                 name="email"
                 type="email"
@@ -28,7 +27,6 @@ Subscribe
         </div>
 
         <button
-            class="rounded bg-cyan-200 px-4 py-2 font-bold text-sky-950 hover:bg-white focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:ring-offset-2 focus:ring-offset-sky-900"
             type="submit"
         >
             Subscribe

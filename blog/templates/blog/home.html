@@ -5,25 +5,25 @@ Antonio's Blog
 {% endblock %}
 
 {% block content %}
-<section class="h-card space-y-2">
-    <h2 class="text-2xl font-bold">Hi, I'm <span class="p-name">Antonio Santos</span> 👋<data class="u-url" value="{% url 'blog:home' %}"></data></h2>
+<section class="h-card intro-section">
+    <h2 class="page-heading">Hi, I'm <span class="p-name">Antonio Santos</span> 👋<data class="u-url" value="{% url 'blog:home' %}"></data></h2>
     <p>
         Welcome to my little corner of the internet where I write about technology, photography, travel, books, and whatever else catches my attention.
     </p>
 </section>
 
-<section class="h-feed space-y-4">
-    <h2 class="p-name text-xl font-bold uppercase">Latest posts</h2>
+<section class="h-feed post-list">
+    <h2 class="p-name section-heading">Latest posts</h2>
 
     {% for post in posts %}
-        <article class="h-entry space-y-1">
-            <h2 class="text-lg">
-                <a class="p-name u-url text-cyan-200 hover:text-white" href="{% url 'blog:post_detail' post.slug %}">
+        <article class="h-entry post-list-item">
+            <h2 class="post-list-title">
+                <a class="p-name u-url" href="{% url 'blog:post_detail' post.slug %}">
                     {{ post.title }}
                 </a>
             </h2>
 
-            <p class="font-mono text-sm text-sky-200">
+            <p class="post-date">
                 <time class="dt-published" datetime="{{ post.published_at|date:'c' }}">
                     {{ post.published_at|date:"F j, Y" }}
                 </time>
@@ -39,6 +39,6 @@ Antonio's Blog
 </section>
 
 <p>
-    <a class="text-cyan-200 hover:text-white" href="{% url 'blog:archive' %}">View the archive ></a>
+    <a class="text-link" href="{% url 'blog:archive' %}">View the archive ></a>
 </p>
 {% endblock %}
