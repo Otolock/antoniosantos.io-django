@@ -145,6 +145,16 @@ class CommentTests(TestCase):
         self.assertIsNone(comment.approved_at)
 
 
+@override_settings(
+    STORAGES={
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    },
+)
 class PostViewTests(TestCase):
     def make_post(self, **kwargs):
         defaults = {
@@ -414,6 +424,9 @@ class PostViewTests(TestCase):
         self.assertContains(response, 'name="action" value="upvote"')
         self.assertContains(response, 'data-upvote-button')
         self.assertContains(response, 'data-upvote-count')
+        self.assertContains(response, 'fetch(form.getAttribute("action")')
+        self.assertContains(response, "&#8593;")
+        self.assertNotContains(response, ">Upvote ")
         self.assertContains(response, ">2<")
 
     def test_upvote_increments_post_count_with_non_js_redirect(self):
