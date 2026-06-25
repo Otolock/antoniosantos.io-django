@@ -552,7 +552,7 @@ class LatestPostsFeedTests(TestCase):
         self.assertNotContains(response, "Draft post")
         self.assertNotContains(response, "Scheduled post")
 
-    @override_settings(ALLOWED_HOSTS=["example.com"])
+    @override_settings(ALLOWED_HOSTS=["example.com"], SITE_URL="https://example.com")
     def test_rss_uses_canonical_post_urls(self):
         self.make_post()
 
@@ -566,32 +566,39 @@ class LatestPostsFeedTests(TestCase):
         self.assertIn("https://example.com/live-post/", content)
         self.assertNotIn("https://example.com/post/live-post/", content)
 
-    @override_settings(ALLOWED_HOSTS=["example.com"])
+    @override_settings(
+        ALLOWED_HOSTS=["django.antoniosantos.io"],
+        SITE_URL="https://antoniosantos.io",
+    )
     def test_rss_preserves_legacy_posts_url_as_stable_guid(self):
         self.make_post(slug="just-write")
 
         response = self.client.get(
             reverse("blog:rss"),
             secure=True,
-            HTTP_HOST="example.com",
+            HTTP_HOST="django.antoniosantos.io",
         )
         content = response.content.decode("utf-8")
 
-        self.assertIn("<link>https://example.com/just-write/</link>", content)
+        self.assertIn("<link>https://antoniosantos.io/just-write/</link>", content)
         self.assertIn(
-            '<guid isPermaLink="true">'
-            "https://example.com/posts/just-write/"
+            '<guid isPermaLink="false">'
+            "https://antoniosantos.io/posts/just-write/"
             "</guid>",
             content,
         )
         self.assertNotIn(
             '<guid isPermaLink="true">'
-            "https://example.com/just-write/"
+            "https://antoniosantos.io/just-write/"
             "</guid>",
             content,
         )
+        self.assertNotIn("https://django.antoniosantos.io", content)
 
-    @override_settings(ALLOWED_HOSTS=["antoniosantos.io"])
+    @override_settings(
+        ALLOWED_HOSTS=["django.antoniosantos.io"],
+        SITE_URL="https://antoniosantos.io",
+    )
     def test_rss_guid_set_matches_pre_migration_feed(self):
         self.assertEqual(
             LEGACY_RSS_GUID_SLUGS,
@@ -609,25 +616,27 @@ class LatestPostsFeedTests(TestCase):
         response = self.client.get(
             reverse("blog:rss"),
             secure=True,
-            HTTP_HOST="antoniosantos.io",
+            HTTP_HOST="django.antoniosantos.io",
         )
         content = response.content.decode("utf-8")
 
         for slug in self.ATTACHED_FEED_GUID_SLUGS:
             self.assertIn(
-                '<guid isPermaLink="true">'
+                '<guid isPermaLink="false">'
                 f"https://antoniosantos.io/posts/{slug}/"
                 "</guid>",
                 content,
             )
+            self.assertIn(f"<link>https://antoniosantos.io/{slug}/</link>", content)
             self.assertNotIn(
                 '<guid isPermaLink="true">'
                 f"https://antoniosantos.io/{slug}/"
                 "</guid>",
                 content,
             )
+        self.assertNotIn("https://django.antoniosantos.io", content)
 
-    @override_settings(ALLOWED_HOSTS=["example.com"])
+    @override_settings(ALLOWED_HOSTS=["example.com"], SITE_URL="https://example.com")
     def test_rss_uses_canonical_guid_for_posts_not_in_legacy_feed(self):
         self.make_post(slug="new-django-post")
 
@@ -646,6 +655,28 @@ class LatestPostsFeedTests(TestCase):
             content,
         )
         self.assertNotIn("https://example.com/posts/new-django-post/", content)
+
+    @override_settings(ALLOWED_HOSTS=["example.com"], SITE_URL="https://example.com")
+    def test_rss_includes_post_publish_date(self):
+        published_at = timezone.datetime(
+            2026,
+            6,
+            23,
+            18,
+            46,
+            18,
+            tzinfo=timezone.UTC,
+        )
+        self.make_post(slug="just-write", published_at=published_at)
+
+        response = self.client.get(
+            reverse("blog:rss"),
+            secure=True,
+            HTTP_HOST="example.com",
+        )
+        content = response.content.decode("utf-8")
+
+        self.assertIn("<pubDate>Tue, 23 Jun 2026 18:46:18 +0000</pubDate>", content)
 
 
 class SitemapTests(TestCase):

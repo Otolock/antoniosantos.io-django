@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.syndication.views import Feed
 from django.utils import timezone
 
@@ -27,29 +28,25 @@ LEGACY_RSS_GUID_SLUGS = {
 }
 
 
+def site_url(path):
+    return f"{settings.SITE_URL}{path}"
+
+
 class LatestPostsFeed(Feed):
     title = "Antonio Santos"
-    link = "/"
     description = "Latest posts"
+
+    def link(self):
+        return site_url("/")
+
+    def feed_url(self):
+        return site_url("/rss.xml")
 
     def items(self):
         return Post.objects.filter(
             status=Post.PUBLISHED,
             published_at__lte=timezone.now(),
         )[:20]
-
-    def get_feed(self, obj, request):
-        posts = list(self.items())
-        feed = super().get_feed(obj, request)
-
-        for feed_item, post in zip(feed.items, posts):
-            feed_item["unique_id_is_permalink"] = True
-            if post.slug in LEGACY_RSS_GUID_SLUGS:
-                feed_item["unique_id"] = request.build_absolute_uri(
-                    f"/posts/{post.slug}/"
-                )
-
-        return feed
 
     def item_title(self, item):
         return item.title
@@ -58,4 +55,15 @@ class LatestPostsFeed(Feed):
         return item.description
 
     def item_link(self, item):
-        return item.get_absolute_url()
+        return site_url(item.get_absolute_url())
+
+    def item_guid(self, item):
+        if item.slug in LEGACY_RSS_GUID_SLUGS:
+            return site_url(f"/posts/{item.slug}/")
+        return self.item_link(item)
+
+    def item_guid_is_permalink(self, item):
+        return item.slug not in LEGACY_RSS_GUID_SLUGS
+
+    def item_pubdate(self, item):
+        return item.published_at
