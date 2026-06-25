@@ -405,6 +405,66 @@ class PostViewTests(TestCase):
         self.assertEqual(comment.ip_address, "127.0.0.1")
         self.assertEqual(comment.user_agent, "Test browser")
 
+    def test_post_detail_shows_anonymous_upvote_button(self):
+        post = self.make_post(upvotes_count=2)
+
+        response = self.client.get(reverse("blog:post_detail", args=[post.slug]))
+
+        self.assertContains(response, 'id="comment-actions"')
+        self.assertContains(response, 'name="action" value="upvote"')
+        self.assertContains(response, 'data-upvote-button')
+        self.assertContains(response, 'data-upvote-count')
+        self.assertContains(response, ">2<")
+
+    def test_upvote_increments_post_count_with_non_js_redirect(self):
+        post = self.make_post(upvotes_count=2)
+
+        response = self.client.post(
+            reverse("blog:post_detail", args=[post.slug]),
+            {"action": "upvote"},
+        )
+
+        self.assertRedirects(response, f"{post.get_absolute_url()}#comment-actions")
+        post.refresh_from_db()
+        self.assertEqual(post.upvotes_count, 3)
+        self.assertEqual(Comment.objects.count(), 0)
+        self.assertNotIn(f"post_{post.pk}_upvoted", response.cookies)
+
+    def test_upvote_fetch_returns_updated_count_without_cookie(self):
+        post = self.make_post(upvotes_count=2)
+
+        response = self.client.post(
+            reverse("blog:post_detail", args=[post.slug]),
+            {"action": "upvote"},
+            HTTP_X_REQUESTED_WITH="fetch",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"upvotes_count": 3})
+        post.refresh_from_db()
+        self.assertEqual(post.upvotes_count, 3)
+        self.assertEqual(Comment.objects.count(), 0)
+        self.assertNotIn(f"post_{post.pk}_upvoted", response.cookies)
+
+    def test_comment_submission_allows_anonymous_author_without_email(self):
+        post = self.make_post()
+
+        response = self.client.post(
+            reverse("blog:post_detail", args=[post.slug]),
+            {
+                "author_name": "",
+                "author_email": "",
+                "body": "This is a quiet anonymous note.",
+                "website": "",
+            },
+        )
+
+        self.assertRedirects(response, post.get_absolute_url())
+        comment = Comment.objects.get()
+        self.assertEqual(comment.author_name, "Anonymous")
+        self.assertEqual(comment.author_email, "")
+        self.assertEqual(comment.body, "This is a quiet anonymous note.")
+
     def test_comment_honeypot_discards_submission(self):
         post = self.make_post()
 

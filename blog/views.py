@@ -1,4 +1,6 @@
 from django.contrib import messages
+from django.db.models import F
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -70,6 +72,15 @@ def post_detail(request, slug):
     )
 
     if request.method == "POST":
+        if request.POST.get("action") == "upvote":
+            Post.objects.filter(pk=post.pk).update(
+                upvotes_count=F("upvotes_count") + 1,
+            )
+            post.refresh_from_db(fields=["upvotes_count"])
+            if request.headers.get("x-requested-with") == "fetch":
+                return JsonResponse({"upvotes_count": post.upvotes_count})
+            return redirect(f"{post.get_absolute_url()}#comment-actions")
+
         comment_form = CommentForm(request.POST)
         if comment_form.honeypot_filled:
             messages.success(request, "Thanks. Your comment is waiting for review.")
@@ -78,8 +89,8 @@ def post_detail(request, slug):
         if comment_form.is_valid():
             Comment.objects.create(
                 post=post,
-                author_name=comment_form.cleaned_data["author_name"].strip(),
-                author_email=comment_form.cleaned_data["author_email"].strip().lower(),
+                author_name=comment_form.cleaned_data["author_name"],
+                author_email=comment_form.cleaned_data["author_email"],
                 body=comment_form.cleaned_data["body"].strip(),
                 ip_address=_client_ip(request),
                 user_agent=request.META.get("HTTP_USER_AGENT", "")[:300],

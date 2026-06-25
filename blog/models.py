@@ -37,6 +37,7 @@ class Post(models.Model):
     slug = models.SlugField(unique=True)
     body = models.TextField()
     description = models.CharField(max_length=300, blank=True)
+    upvotes_count = models.PositiveIntegerField(default=0)
 
     status = models.CharField(
         max_length=20,
@@ -119,8 +120,8 @@ class Comment(models.Model):
         on_delete=models.CASCADE,
         related_name="comments",
     )
-    author_name = models.CharField(max_length=80)
-    author_email = models.EmailField()
+    author_name = models.CharField(max_length=80, blank=True)
+    author_email = models.EmailField(blank=True)
     body = models.TextField(max_length=2000)
     status = models.CharField(
         max_length=20,
@@ -143,6 +144,9 @@ class Comment(models.Model):
         return f"{self.author_name} on {self.post}"
 
     def save(self, *args, **kwargs):
+        self.author_name = self.author_name.strip() or "Anonymous"
+        self.author_email = self.author_email.strip().lower()
+
         if self.status == self.APPROVED and self.approved_at is None:
             self.approved_at = timezone.now()
             update_fields = kwargs.get("update_fields")

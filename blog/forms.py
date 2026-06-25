@@ -7,12 +7,14 @@ class SubscribeForm(forms.Form):
 
 class CommentForm(forms.Form):
     author_name = forms.CharField(
+        required=False,
         max_length=80,
         label="Name",
     )
     author_email = forms.EmailField(
+        required=False,
         label="Email",
-        help_text="Only used for moderation. It won't be published.",
+        help_text="Optional. It won't be published.",
     )
     body = forms.CharField(
         max_length=2000,
