@@ -422,6 +422,20 @@ class MicropubTests(TestCase):
         self.assertIsNone(post.published_at)
         self.assertEqual(response["Location"], "http://testserver/real-post-title/")
 
+    def test_create_accepts_exact_micropub_url_without_trailing_slash(self):
+        response = self.client.post(
+            "/micropub",
+            {
+                "h": "entry",
+                "content": "# Real Post Title\n\nThis is the draft body.",
+            },
+            **self.auth(),
+        )
+
+        self.assertEqual(response.status_code, 201)
+        post = Post.objects.get()
+        self.assertEqual(post.title, "Real Post Title")
+
     def test_json_create_uses_microformats_content_property(self):
         response = self.client.post(
             reverse("blog:micropub"),
