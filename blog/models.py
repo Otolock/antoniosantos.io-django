@@ -103,6 +103,64 @@ class Subscriber(models.Model):
         super().save(*args, **kwargs)
 
 
+class Comment(models.Model):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+    STATUS_CHOICES = [
+        (PENDING, "Pending"),
+        (APPROVED, "Approved"),
+        (REJECTED, "Rejected"),
+    ]
+
+    post = models.ForeignKey(
+        Post,
+        on_delete=models.CASCADE,
+        related_name="comments",
+    )
+    author_name = models.CharField(max_length=80)
+    author_email = models.EmailField()
+    body = models.TextField(max_length=2000)
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=PENDING,
+    )
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=300, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    approved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        indexes = [
+            models.Index(fields=["post", "status", "created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.author_name} on {self.post}"
+
+    def save(self, *args, **kwargs):
+        if self.status == self.APPROVED and self.approved_at is None:
+            self.approved_at = timezone.now()
+            update_fields = kwargs.get("update_fields")
+            if update_fields is not None:
+                kwargs["update_fields"] = set(update_fields) | {"approved_at"}
+        elif self.status != self.APPROVED:
+            self.approved_at = None
+            update_fields = kwargs.get("update_fields")
+            if update_fields is not None:
+                kwargs["update_fields"] = set(update_fields) | {"approved_at"}
+
+        super().save(*args, **kwargs)
+
+    @property
+    def is_approved(self):
+        return self.status == self.APPROVED
+
+
 class PostMedia(models.Model):
     IMAGE_EXTENSIONS = {".gif", ".jpeg", ".jpg", ".png", ".webp"}
 

@@ -13,7 +13,7 @@ from unittest.mock import patch
 from . import llm
 from .admin import PostAdmin
 from .feeds import LEGACY_RSS_GUID_SLUGS
-from .models import Post, PostMedia, Subscriber
+from .models import Comment, Post, PostMedia, Subscriber
 
 
 class PostTests(TestCase):
@@ -103,6 +103,46 @@ class PostTests(TestCase):
 
                 post.refresh_from_db()
                 self.assertEqual(post.published_at, published_at)
+
+
+class CommentTests(TestCase):
+    def make_post(self):
+        return Post.objects.create(
+            title="Test post",
+            slug="test-post",
+            body="Hello.",
+            status=Post.PUBLISHED,
+            published_at=timezone.now(),
+        )
+
+    def test_save_sets_approved_at_when_approved(self):
+        comment = Comment.objects.create(
+            post=self.make_post(),
+            author_name="Reader",
+            author_email="reader@example.com",
+            body="Nice post.",
+        )
+
+        comment.status = Comment.APPROVED
+        comment.save(update_fields=["status"])
+
+        comment.refresh_from_db()
+        self.assertIsNotNone(comment.approved_at)
+
+    def test_save_clears_approved_at_when_unapproved(self):
+        comment = Comment.objects.create(
+            post=self.make_post(),
+            author_name="Reader",
+            author_email="reader@example.com",
+            body="Nice post.",
+            status=Comment.APPROVED,
+        )
+
+        comment.status = Comment.REJECTED
+        comment.save(update_fields=["status"])
+
+        comment.refresh_from_db()
+        self.assertIsNone(comment.approved_at)
 
 
 class PostViewTests(TestCase):
@@ -315,6 +355,88 @@ class PostViewTests(TestCase):
                     reverse("blog:post_detail", args=[slug])
                 )
                 self.assertEqual(response.status_code, 404)
+
+    def test_post_detail_lists_only_approved_comments(self):
+        post = self.make_post()
+        Comment.objects.create(
+            post=post,
+            author_name="Ada",
+            author_email="ada@example.com",
+            body="Approved and visible.",
+            status=Comment.APPROVED,
+        )
+        Comment.objects.create(
+            post=post,
+            author_name="Pending Reader",
+            author_email="pending@example.com",
+            body="Still waiting.",
+            status=Comment.PENDING,
+        )
+
+        response = self.client.get(reverse("blog:post_detail", args=[post.slug]))
+
+        self.assertContains(response, "Approved and visible.")
+        self.assertContains(response, "Ada")
+        self.assertNotContains(response, "Still waiting.")
+        self.assertNotContains(response, "Pending Reader")
+
+    def test_comment_submission_creates_pending_comment_and_redirects(self):
+        post = self.make_post()
+
+        response = self.client.post(
+            reverse("blog:post_detail", args=[post.slug]),
+            {
+                "author_name": " Reader ",
+                "author_email": " READER@example.com ",
+                "body": "This is a thoughtful note.",
+                "website": "",
+            },
+            REMOTE_ADDR="127.0.0.1",
+            HTTP_USER_AGENT="Test browser",
+        )
+
+        self.assertRedirects(response, post.get_absolute_url())
+        comment = Comment.objects.get()
+        self.assertEqual(comment.post, post)
+        self.assertEqual(comment.author_name, "Reader")
+        self.assertEqual(comment.author_email, "reader@example.com")
+        self.assertEqual(comment.body, "This is a thoughtful note.")
+        self.assertEqual(comment.status, Comment.PENDING)
+        self.assertEqual(comment.ip_address, "127.0.0.1")
+        self.assertEqual(comment.user_agent, "Test browser")
+
+    def test_comment_honeypot_discards_submission(self):
+        post = self.make_post()
+
+        response = self.client.post(
+            reverse("blog:post_detail", args=[post.slug]),
+            {
+                "author_name": "Spammer",
+                "author_email": "spam@example.com",
+                "body": "Definitely normal.",
+                "website": "https://spam.example.com",
+            },
+        )
+
+        self.assertRedirects(response, post.get_absolute_url())
+        self.assertEqual(Comment.objects.count(), 0)
+
+    def test_invalid_comment_submission_does_not_create_comment(self):
+        post = self.make_post()
+
+        response = self.client.post(
+            reverse("blog:post_detail", args=[post.slug]),
+            {
+                "author_name": "",
+                "author_email": "not an email",
+                "body": "",
+                "website": "",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "This field is required.")
+        self.assertEqual(Comment.objects.count(), 0)
 
 
 class SubscribeViewTests(TestCase):

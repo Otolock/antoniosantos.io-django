@@ -6,7 +6,7 @@ from django.utils.html import format_html
 from django.utils import timezone
 
 from .llm import DescriptionGenerationError, generate_post_description
-from .models import Post, PostMedia, Subscriber
+from .models import Comment, Post, PostMedia, Subscriber
 
 
 @admin.register(Subscriber)
@@ -111,6 +111,52 @@ class PostAdmin(admin.ModelAdmin):
             self.message_user(
                 request,
                 f"Generated descriptions for {generated} post(s).",
+                messages.SUCCESS,
+            )
+
+
+@admin.register(Comment)
+class CommentAdmin(admin.ModelAdmin):
+    list_display = [
+        "author_name",
+        "post",
+        "status",
+        "created_at",
+        "approved_at",
+    ]
+    list_filter = ["status", "created_at", "approved_at"]
+    search_fields = ["author_name", "author_email", "body", "post__title"]
+    readonly_fields = ["created_at", "updated_at", "approved_at"]
+    actions = ["approve_comments", "reject_comments"]
+    autocomplete_fields = ["post"]
+
+    @admin.action(description="Approve selected comments")
+    def approve_comments(self, request, queryset):
+        approved = 0
+        for comment in queryset:
+            comment.status = Comment.APPROVED
+            comment.save(update_fields=["status"])
+            approved += 1
+
+        if approved:
+            self.message_user(
+                request,
+                f"Approved {approved} comment(s).",
+                messages.SUCCESS,
+            )
+
+    @admin.action(description="Reject selected comments")
+    def reject_comments(self, request, queryset):
+        rejected = 0
+        for comment in queryset:
+            comment.status = Comment.REJECTED
+            comment.save(update_fields=["status"])
+            rejected += 1
+
+        if rejected:
+            self.message_user(
+                request,
+                f"Rejected {rejected} comment(s).",
                 messages.SUCCESS,
             )
 

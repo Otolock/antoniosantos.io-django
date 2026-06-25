@@ -28,4 +28,75 @@
         {{ post.body_html|safe }}
     </div>
 </article>
+
+<section class="comments-section" id="comments" aria-labelledby="comments-heading">
+    <div class="comments-header">
+        <h2 class="section-heading" id="comments-heading">Comments</h2>
+        <p class="comments-note">
+            {{ comments|length }} approved comment{{ comments|length|pluralize }}
+        </p>
+    </div>
+
+    {% if comments %}
+        <ol class="comment-list">
+            {% for comment in comments %}
+                <li class="comment">
+                    <header class="comment-header">
+                        <strong>{{ comment.author_name }}</strong>
+                        <time datetime="{{ comment.created_at|date:'c' }}">
+                            {{ comment.created_at|date:"F j, Y" }}
+                        </time>
+                    </header>
+                    <div class="comment-body">
+                        {{ comment.body|linebreaksbr }}
+                    </div>
+                </li>
+            {% endfor %}
+        </ol>
+    {% else %}
+        <p class="comments-empty">No comments yet.</p>
+    {% endif %}
+</section>
+
+<section class="comment-form-section" aria-labelledby="comment-form-heading">
+    <h2 class="section-heading" id="comment-form-heading">Leave a comment</h2>
+
+    <form class="comment-form" action="{{ post.get_absolute_url }}#comment-form-heading" method="post">
+        {% csrf_token %}
+
+        <div class="form-field">
+            <label for="{{ comment_form.author_name.id_for_label }}">{{ comment_form.author_name.label }}</label>
+            {{ comment_form.author_name }}
+            {% for error in comment_form.author_name.errors %}
+                <p class="form-error">{{ error }}</p>
+            {% endfor %}
+        </div>
+
+        <div class="form-field">
+            <label for="{{ comment_form.author_email.id_for_label }}">{{ comment_form.author_email.label }}</label>
+            {{ comment_form.author_email }}
+            {% if comment_form.author_email.help_text %}
+                <p class="form-help">{{ comment_form.author_email.help_text }}</p>
+            {% endif %}
+            {% for error in comment_form.author_email.errors %}
+                <p class="form-error">{{ error }}</p>
+            {% endfor %}
+        </div>
+
+        <div class="form-field comment-honeypot" aria-hidden="true">
+            <label for="{{ comment_form.website.id_for_label }}">{{ comment_form.website.label }}</label>
+            {{ comment_form.website }}
+        </div>
+
+        <div class="form-field">
+            <label for="{{ comment_form.body.id_for_label }}">{{ comment_form.body.label }}</label>
+            {{ comment_form.body }}
+            {% for error in comment_form.body.errors %}
+                <p class="form-error">{{ error }}</p>
+            {% endfor %}
+        </div>
+
+        <button type="submit">Submit for review</button>
+    </form>
+</section>
 {% endblock %}

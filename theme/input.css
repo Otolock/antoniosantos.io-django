@@ -217,7 +217,62 @@
     line-height: 1.625;
   }
 
-  .subscribe-form {
+  .comments-section,
+  .comment-form-section {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 4);
+    border-top: 1px solid var(--color-sky-700);
+    padding-top: calc(var(--spacing) * 6);
+  }
+
+  .comments-header {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 1);
+  }
+
+  .comments-note,
+  .comments-empty,
+  .form-help {
+    color: var(--color-sky-200);
+    font-size: var(--text-sm);
+  }
+
+  .comment-list {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 5);
+  }
+
+  .comment {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 2);
+    min-width: 0;
+  }
+
+  .comment-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(var(--spacing) * 2);
+    align-items: baseline;
+    color: var(--color-white);
+  }
+
+  .comment-header time {
+    color: var(--color-sky-200);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+
+  .comment-body {
+    color: var(--color-sky-100);
+    overflow-wrap: break-word;
+  }
+
+  .subscribe-form,
+  .comment-form {
     display: flex;
     flex-direction: column;
     gap: calc(var(--spacing) * 3);
@@ -234,9 +289,9 @@
     font-size: var(--text-sm);
   }
 
-  .form-field input {
+  .form-field input,
+  .form-field textarea {
     width: 100%;
-    min-height: 2.75rem;
     border: 1px solid var(--color-sky-700);
     border-radius: 0.375rem;
     background: var(--color-sky-950);
@@ -244,16 +299,41 @@
     padding: calc(var(--spacing) * 2) calc(var(--spacing) * 3);
   }
 
-  .form-field input::placeholder {
+  .form-field input {
+    min-height: 2.75rem;
+  }
+
+  .form-field textarea {
+    min-height: 9rem;
+    resize: vertical;
+  }
+
+  .form-field input::placeholder,
+  .form-field textarea::placeholder {
     color: var(--color-sky-300);
   }
 
-  .form-field input:focus {
+  .form-field input:focus,
+  .form-field textarea:focus {
     border-color: var(--color-cyan-200);
     outline: none;
   }
 
-  .subscribe-form button {
+  .form-error {
+    color: var(--color-red-200);
+    font-size: var(--text-sm);
+  }
+
+  .comment-honeypot {
+    position: absolute;
+    left: -100vw;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  .subscribe-form button,
+  .comment-form button {
     min-height: 2.75rem;
     border-radius: 0.375rem;
     background: var(--color-cyan-200);
@@ -263,7 +343,8 @@
     transition: background-color 150ms ease;
   }
 
-  .subscribe-form button:hover {
+  .subscribe-form button:hover,
+  .comment-form button:hover {
     background: var(--color-white);
   }
 
@@ -352,7 +433,8 @@
       margin-top: calc(var(--spacing) * 4);
     }
 
-    .subscribe-form button {
+    .subscribe-form button,
+    .comment-form button {
       align-self: flex-start;
     }
 
