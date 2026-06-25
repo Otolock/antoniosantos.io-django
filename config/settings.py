@@ -42,9 +42,13 @@ if not SECRET_KEY:
     else:
         raise RuntimeError("DJANGO_SECRET_KEY must be set when DJANGO_DEBUG is false.")
 
-ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", ["localhost", "127.0.0.1"])
-CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
+ALLOWED_HOSTS = [
+    "antoniosantos.io",
+]
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://antoniosantos.io",
+]
 
 # Application definition
 
@@ -142,7 +146,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 SITE_URL = os.environ.get("SITE_URL", "https://antoniosantos.io").rstrip("/")
 
-SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", False)
+SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", not DEBUG)
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 SECURE_HSTS_SECONDS = int(
