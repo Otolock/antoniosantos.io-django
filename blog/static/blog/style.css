@@ -865,7 +865,7 @@
     flex-direction: column;
     gap: calc(var(--spacing) * 4);
   }
-  .comments-empty, .form-help {
+  .comments-empty, .moderation-note, .form-help {
     color: var(--color-sky-200);
     font-size: var(--text-sm);
   }

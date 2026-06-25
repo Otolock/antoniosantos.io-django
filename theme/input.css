@@ -271,6 +271,7 @@
   }
 
   .comments-empty,
+  .moderation-note,
   .form-help {
     color: var(--color-sky-200);
     font-size: var(--text-sm);

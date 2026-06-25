@@ -390,6 +390,16 @@ class PostViewTests(TestCase):
         self.assertNotContains(response, "Still waiting.")
         self.assertNotContains(response, "Pending Reader")
 
+    def test_comment_form_explains_moderation(self):
+        self.make_post()
+
+        response = self.client.get(reverse("blog:post_detail", args=["live-post"]))
+
+        self.assertContains(
+            response,
+            "Comments are moderated, so yours may not appear right away.",
+        )
+
     def test_comment_submission_creates_pending_comment_and_redirects(self):
         post = self.make_post()
 

@@ -93,6 +93,10 @@
 </script>
 
 <section class="comment-panel comment-form-section" id="leave-comment" aria-label="Leave a comment">
+    <p class="moderation-note">
+        Comments are moderated, so yours may not appear right away.
+    </p>
+
     <form class="comment-form" action="{{ post.get_absolute_url }}#leave-comment" method="post">
         {% csrf_token %}
 
