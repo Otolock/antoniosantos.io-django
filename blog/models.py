@@ -151,5 +151,5 @@ class PostMedia(models.Model):
     def markdown_snippet(self):
         label = self.alt_text or self.title
         if self.is_image:
-            return f"![{label}]({self.get_absolute_url()})"
-        return f"[{label}]({self.get_absolute_url()})"
+            return f"![{label}]({self.file.url})"
+        return f"[{label}]({self.file.url})"
