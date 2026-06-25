@@ -69,6 +69,7 @@ if not SECRET_KEY:
 
 ALLOWED_HOSTS = [
     "antoniosantos.io",
+    "127.0.0.1",
 ]
 
 CSRF_TRUSTED_ORIGINS = [

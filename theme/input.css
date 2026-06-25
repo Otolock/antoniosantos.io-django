@@ -41,7 +41,7 @@
   .site-header {
     display: flex;
     flex-direction: column;
-    gap: calc(var(--spacing) * 4);
+    gap: calc(var(--spacing) * 2);
   }
 
   .site-title {
@@ -385,8 +385,8 @@
 
     .site-header {
       align-items: flex-start;
-      flex-direction: row;
-      justify-content: space-between;
+      flex-direction: column;
+      justify-content: flex-start;
     }
 
     .site-title {
@@ -394,8 +394,7 @@
     }
 
     .site-nav {
-      justify-content: flex-end;
-      padding-top: calc(var(--spacing) * 1);
+      justify-content: flex-start;
     }
 
     .site-main {
