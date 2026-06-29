@@ -1213,6 +1213,35 @@ class PostAdminTests(TestCase):
         self.assertGreaterEqual(post.published_at, before_save)
         self.assertLessEqual(post.published_at, after_save)
 
+    @patch("blog.admin.send_webmentions_for_post")
+    def test_admin_save_sends_webmentions_for_published_post(self, send_webmentions):
+        post = Post(
+            title="Live post",
+            slug="live-post",
+            body="[Elsewhere](https://example.com/post/)",
+            status=Post.PUBLISHED,
+            published_at=timezone.now(),
+        )
+        model_admin = PostAdmin(Post, admin.site)
+
+        model_admin.save_model(None, post, None, False)
+
+        send_webmentions.assert_called_once_with(post)
+
+    @patch("blog.admin.send_webmentions_for_post")
+    def test_admin_save_does_not_send_webmentions_for_draft(self, send_webmentions):
+        post = Post(
+            title="Draft post",
+            slug="draft-post",
+            body="[Elsewhere](https://example.com/post/)",
+            status=Post.DRAFT,
+        )
+        model_admin = PostAdmin(Post, admin.site)
+
+        model_admin.save_model(None, post, None, False)
+
+        send_webmentions.assert_not_called()
+
     def test_publish_posts_action_publishes_selected_drafts_now(self):
         post = Post.objects.create(
             title="Draft post",
@@ -1229,6 +1258,23 @@ class PostAdminTests(TestCase):
         self.assertEqual(post.status, Post.PUBLISHED)
         self.assertIsNotNone(post.published_at)
         self.assertTrue(post.is_published)
+
+    @patch("blog.admin.send_webmentions_for_post")
+    def test_publish_posts_action_sends_webmentions(self, send_webmentions):
+        post = Post.objects.create(
+            title="Draft post",
+            slug="draft-post",
+            body="[Elsewhere](https://example.com/post/)",
+            status=Post.DRAFT,
+            published_at=None,
+        )
+        model_admin = PostAdmin(Post, admin.site)
+
+        model_admin.publish_posts(None, Post.objects.filter(pk=post.pk))
+
+        post.refresh_from_db()
+        send_webmentions.assert_called_once()
+        self.assertEqual(send_webmentions.call_args.args[0], post)
 
     def test_publish_posts_action_preserves_existing_publish_dates(self):
         backdated_at = timezone.now() - timezone.timedelta(days=30)

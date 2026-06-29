@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from .llm import DescriptionGenerationError, generate_post_description
 from .models import Comment, Post, PostMedia, Subscriber
+from webmentions.services import send_webmentions_for_post
 
 
 @admin.register(Subscriber)
@@ -39,6 +40,11 @@ class PostAdmin(admin.ModelAdmin):
             ),
         ]
         return custom_urls + urls
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if obj.is_published:
+            send_webmentions_for_post(obj)
 
     def generate_description_view(self, request, object_id):
         post = self.get_object(request, object_id)
@@ -85,6 +91,9 @@ class PostAdmin(admin.ModelAdmin):
             published_at=publish_time,
         )
         queryset.filter(published_at__isnull=False).update(status=Post.PUBLISHED)
+        for post in queryset:
+            post.refresh_from_db(fields=["status", "published_at"])
+            send_webmentions_for_post(post)
 
     @admin.action(description="Unpublish selected posts")
     def unpublish_posts(self, request, queryset):

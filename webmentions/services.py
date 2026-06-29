@@ -4,8 +4,13 @@ import socket
 from dataclasses import dataclass
 from urllib.parse import urljoin, urlparse
 
+from django.conf import settings
+from django.db.models import F
+from django.utils import timezone
 import requests
 from bs4 import BeautifulSoup
+
+from .models import SentWebmention
 
 
 MAX_REDIRECTS = 5
@@ -39,6 +44,15 @@ class WebmentionValidationError(ValueError):
 class SourceVerificationResult:
     links_to_target: bool
     source_deleted: bool = False
+
+
+@dataclass
+class SendWebmentionResult:
+    target_url: str
+    endpoint_url: str = ""
+    status: str = SentWebmention.PENDING
+    response_code: int | None = None
+    error: str = ""
 
 
 def validate_webmention_url(url):
@@ -91,6 +105,146 @@ def verify_source_links_to_target(source_url, target_url):
 
 def source_links_to_target(source_url, target_url):
     return verify_source_links_to_target(source_url, target_url).links_to_target
+
+
+def send_webmentions_for_post(post):
+    if not post.is_published:
+        return []
+
+    source_url = post_source_url(post)
+    results = []
+    for target_url in extract_webmention_targets(post.body_html, source_url):
+        results.append(send_webmention(source_url, target_url))
+    return results
+
+
+def post_source_url(post):
+    return urljoin(settings.SITE_URL + "/", post.get_absolute_url().lstrip("/"))
+
+
+def extract_webmention_targets(html, source_url):
+    source_netloc = _normalized_netloc(urlparse(source_url))
+    soup = BeautifulSoup(html, "html.parser")
+    targets = []
+    seen = set()
+
+    for link in soup.find_all("a", href=True):
+        target_url = urljoin(source_url, link["href"])
+        try:
+            validate_webmention_url(target_url)
+        except WebmentionValidationError:
+            continue
+
+        if target_url == source_url:
+            continue
+
+        if _normalized_netloc(urlparse(target_url)) == source_netloc:
+            continue
+
+        if target_url not in seen:
+            targets.append(target_url)
+            seen.add(target_url)
+
+    return targets
+
+
+def send_webmention(source_url, target_url):
+    record, _ = SentWebmention.objects.get_or_create(
+        source_url=source_url,
+        target_url=target_url,
+    )
+
+    try:
+        endpoint_url = discover_webmention_endpoint(target_url)
+    except WebmentionValidationError as error:
+        return _record_sent_webmention_result(
+            record,
+            SendWebmentionResult(
+                target_url=target_url,
+                status=SentWebmention.FAILED,
+                error=str(error),
+            ),
+        )
+
+    if not endpoint_url:
+        return _record_sent_webmention_result(
+            record,
+            SendWebmentionResult(
+                target_url=target_url,
+                status=SentWebmention.NO_ENDPOINT,
+                error="Target does not advertise a Webmention endpoint.",
+            ),
+        )
+
+    try:
+        validate_source_url(endpoint_url)
+        response = requests.post(
+            endpoint_url,
+            data={"source": source_url, "target": target_url},
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "User-Agent": "antoniosantos.io webmention sender",
+            },
+            timeout=10,
+            allow_redirects=False,
+        )
+    except requests.RequestException as error:
+        return _record_sent_webmention_result(
+            record,
+            SendWebmentionResult(
+                target_url=target_url,
+                endpoint_url=endpoint_url,
+                status=SentWebmention.FAILED,
+                error=str(error),
+            ),
+        )
+    except WebmentionValidationError as error:
+        return _record_sent_webmention_result(
+            record,
+            SendWebmentionResult(
+                target_url=target_url,
+                endpoint_url=endpoint_url,
+                status=SentWebmention.FAILED,
+                error=str(error),
+            ),
+        )
+
+    status = (
+        SentWebmention.SENT
+        if 200 <= response.status_code < 300
+        else SentWebmention.FAILED
+    )
+    return _record_sent_webmention_result(
+        record,
+        SendWebmentionResult(
+            target_url=target_url,
+            endpoint_url=endpoint_url,
+            status=status,
+            response_code=response.status_code,
+            error="" if status == SentWebmention.SENT else response.text[:1000],
+        ),
+    )
+
+
+def discover_webmention_endpoint(target_url):
+    validate_source_url(target_url)
+
+    response = _fetch_source(target_url)
+    if response is None:
+        return ""
+
+    endpoint_url = _endpoint_from_link_header(response)
+    if endpoint_url:
+        response.close()
+        return endpoint_url
+
+    content_type = _content_type(response)
+    if content_type not in HTML_CONTENT_TYPES:
+        response.close()
+        return ""
+
+    body = _read_limited_response(response)
+    return _endpoint_from_html(body, response.url)
 
 
 def _fetch_source(source_url):
@@ -203,6 +357,69 @@ def _content_type(response):
     return response.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
 
 
+def _endpoint_from_link_header(response):
+    link_header = response.headers.get("Link", "")
+    for link_value in _split_link_header(link_header):
+        endpoint_url = _webmention_endpoint_from_link_value(link_value, response.url)
+        if endpoint_url:
+            return endpoint_url
+    return ""
+
+
+def _split_link_header(link_header):
+    parts = []
+    current = []
+    in_angle_brackets = False
+    in_quotes = False
+
+    for character in link_header:
+        if character == "<" and not in_quotes:
+            in_angle_brackets = True
+        elif character == ">" and not in_quotes:
+            in_angle_brackets = False
+        if character == '"':
+            in_quotes = not in_quotes
+        if character == "," and not in_quotes and not in_angle_brackets:
+            parts.append("".join(current).strip())
+            current = []
+            continue
+        current.append(character)
+
+    if current:
+        parts.append("".join(current).strip())
+
+    return parts
+
+
+def _webmention_endpoint_from_link_value(link_value, base_url):
+    if not link_value.startswith("<") or ">" not in link_value:
+        return ""
+
+    endpoint, parameter_text = link_value[1:].split(">", 1)
+    rels = set()
+    for parameter in parameter_text.split(";"):
+        name, separator, value = parameter.strip().partition("=")
+        if separator and name.lower() == "rel":
+            rels.update(rel.lower() for rel in value.strip('"').split())
+
+    if "webmention" in rels:
+        return urljoin(base_url, endpoint)
+
+    return ""
+
+
+def _endpoint_from_html(body, base_url):
+    soup = BeautifulSoup(body, "html.parser")
+    for element in soup.find_all(["link", "a"]):
+        rels = element.get("rel") or []
+        if isinstance(rels, str):
+            rels = rels.split()
+        rels = [rel.lower() for rel in rels]
+        if "webmention" in rels and element.get("href"):
+            return urljoin(base_url, element["href"])
+    return ""
+
+
 def _is_json_content_type(content_type):
     return content_type == "application/json" or content_type.endswith("+json")
 
@@ -239,3 +456,33 @@ def _json_value_mentions_target(value, target_url):
     if isinstance(value, list):
         return any(_json_value_mentions_target(item, target_url) for item in value)
     return False
+
+
+def _normalized_netloc(parsed_url):
+    hostname = (parsed_url.hostname or "").lower()
+    port = parsed_url.port
+    if (
+        (parsed_url.scheme == "http" and port == 80)
+        or (parsed_url.scheme == "https" and port == 443)
+        or port is None
+    ):
+        return hostname
+    return f"{hostname}:{port}"
+
+
+def _record_sent_webmention_result(record, result):
+    record.endpoint_url = result.endpoint_url
+    record.status = result.status
+    record.response_code = result.response_code
+    record.error = result.error[:2000]
+    record.last_sent_at = timezone.now()
+    SentWebmention.objects.filter(pk=record.pk).update(
+        attempts=F("attempts") + 1,
+        endpoint_url=record.endpoint_url,
+        status=record.status,
+        response_code=record.response_code,
+        error=record.error,
+        last_sent_at=record.last_sent_at,
+    )
+    record.refresh_from_db()
+    return result

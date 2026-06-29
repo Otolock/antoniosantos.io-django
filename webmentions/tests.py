@@ -5,10 +5,13 @@ from unittest.mock import patch
 
 from blog.models import Post
 
-from .models import Webmention
+from .models import SentWebmention, Webmention
 from .services import (
     SourceVerificationResult,
     WebmentionValidationError,
+    discover_webmention_endpoint,
+    extract_webmention_targets,
+    send_webmention,
     verify_source_links_to_target,
 )
 
@@ -287,6 +290,175 @@ class VerifySourceLinksToTargetTests(TestCase):
         self.assertEqual(len(session.calls), 1)
 
 
+class SendWebmentionTests(TestCase):
+    source = "https://example.com/live-post/"
+    target = "https://target.example/article/?reply=true"
+    endpoint = "https://target.example/webmention/?token=abc"
+    public_ip = {"8.8.8.8"}
+
+    def test_extract_webmention_targets_returns_unique_external_links(self):
+        html = """
+        <p>
+            <a href="https://target.example/article/">external</a>
+            <a href="https://target.example/article/">duplicate</a>
+            <a href="/internal/">internal</a>
+            <a href="mailto:hi@example.com">email</a>
+        </p>
+        """
+
+        targets = extract_webmention_targets(html, self.source)
+
+        self.assertEqual(targets, ["https://target.example/article/"])
+
+    @patch("webmentions.services._resolve_host_ips", return_value=public_ip)
+    @patch("webmentions.services.requests.Session")
+    def test_discovers_endpoint_from_link_header(self, session_class, resolve_ips):
+        session_class.return_value = FakeSession(
+            [
+                FakeResponse(
+                    200,
+                    "<p>Hello</p>",
+                    url=self.target,
+                    headers={
+                        "Content-Type": "text/html",
+                        "Link": (
+                            '<https://target.example/other/>; rel="author", '
+                            '</webmention/?token=abc,def>; rel="WebMention"'
+                        ),
+                    },
+                )
+            ]
+        )
+
+        endpoint = discover_webmention_endpoint(self.target)
+
+        self.assertEqual(endpoint, "https://target.example/webmention/?token=abc,def")
+
+    @patch("webmentions.services._resolve_host_ips", return_value=public_ip)
+    @patch("webmentions.services.requests.Session")
+    def test_discovers_endpoint_from_html_link(self, session_class, resolve_ips):
+        session_class.return_value = FakeSession(
+            [
+                FakeResponse(
+                    200,
+                    '<link rel="webmention" href="/webmention/">',
+                    url="https://target.example/article/",
+                    headers={"Content-Type": "text/html"},
+                )
+            ]
+        )
+
+        endpoint = discover_webmention_endpoint("https://target.example/article/")
+
+        self.assertEqual(endpoint, "https://target.example/webmention/")
+
+    @patch("webmentions.services._resolve_host_ips", return_value=public_ip)
+    @patch("webmentions.services.requests.post")
+    @patch("webmentions.services.requests.Session")
+    def test_send_webmention_posts_source_and_target(
+        self,
+        session_class,
+        post,
+        resolve_ips,
+    ):
+        session_class.return_value = FakeSession(
+            [
+                FakeResponse(
+                    200,
+                    "<p>Hello</p>",
+                    url=self.target,
+                    headers={"Link": f"<{self.endpoint}>; rel=\"webmention\""},
+                )
+            ]
+        )
+        post.return_value = FakeResponse(202, "", url=self.endpoint)
+
+        result = send_webmention(self.source, self.target)
+
+        self.assertEqual(result.status, SentWebmention.SENT)
+        post.assert_called_once_with(
+            self.endpoint,
+            data={"source": self.source, "target": self.target},
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "User-Agent": "antoniosantos.io webmention sender",
+            },
+            timeout=10,
+            allow_redirects=False,
+        )
+        record = SentWebmention.objects.get(
+            source_url=self.source,
+            target_url=self.target,
+        )
+        self.assertEqual(record.endpoint_url, self.endpoint)
+        self.assertEqual(record.status, SentWebmention.SENT)
+        self.assertEqual(record.response_code, 202)
+        self.assertEqual(record.attempts, 1)
+
+    @patch("webmentions.services._resolve_host_ips", return_value=public_ip)
+    @patch("webmentions.services.requests.post")
+    @patch("webmentions.services.requests.Session")
+    def test_send_webmention_records_missing_endpoint(
+        self,
+        session_class,
+        post,
+        resolve_ips,
+    ):
+        session_class.return_value = FakeSession(
+            [
+                FakeResponse(
+                    200,
+                    "<p>No endpoint</p>",
+                    url=self.target,
+                    headers={"Content-Type": "text/html"},
+                )
+            ]
+        )
+
+        result = send_webmention(self.source, self.target)
+
+        self.assertEqual(result.status, SentWebmention.NO_ENDPOINT)
+        post.assert_not_called()
+        record = SentWebmention.objects.get(
+            source_url=self.source,
+            target_url=self.target,
+        )
+        self.assertEqual(record.status, SentWebmention.NO_ENDPOINT)
+        self.assertEqual(record.attempts, 1)
+
+    @patch("webmentions.services._resolve_host_ips", return_value=public_ip)
+    @patch("webmentions.services.requests.post")
+    @patch("webmentions.services.requests.Session")
+    def test_send_webmention_records_non_success_response(
+        self,
+        session_class,
+        post,
+        resolve_ips,
+    ):
+        session_class.return_value = FakeSession(
+            [
+                FakeResponse(
+                    200,
+                    "<p>Hello</p>",
+                    url=self.target,
+                    headers={"Link": f"<{self.endpoint}>; rel=\"webmention\""},
+                )
+            ]
+        )
+        post.return_value = FakeResponse(500, "Nope", url=self.endpoint)
+
+        result = send_webmention(self.source, self.target)
+
+        self.assertEqual(result.status, SentWebmention.FAILED)
+        record = SentWebmention.objects.get(
+            source_url=self.source,
+            target_url=self.target,
+        )
+        self.assertEqual(record.status, SentWebmention.FAILED)
+        self.assertEqual(record.response_code, 500)
+        self.assertEqual(record.error, "Nope")
+
+
 class FakeResponse:
     encoding = "utf-8"
 
@@ -302,6 +474,10 @@ class FakeResponse:
             yield self.body
         else:
             yield self.body.encode(self.encoding)
+
+    @property
+    def text(self):
+        return self.body
 
     def close(self):
         self.closed = True
