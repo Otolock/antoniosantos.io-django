@@ -10,6 +10,7 @@ from ipaddress import ip_address
 from .forms import CommentForm, SubscribeForm
 from .micropub import micropub
 from .models import Comment, Post, PostMedia, Subscriber
+from webmentions.models import Webmention
 
 
 def published_posts():
@@ -100,15 +101,21 @@ def post_detail(request, slug):
     else:
         comment_form = CommentForm()
 
+    canonical_url = request.build_absolute_uri(post.get_absolute_url())
     comments = post.comments.filter(status=Comment.APPROVED)
+    webmentions = Webmention.objects.filter(
+        target_url=canonical_url,
+        status=Webmention.APPROVED,
+    ).order_by("created_at")
     return render(
         request,
         "blog/post_detail.html",
         {
             "post": post,
-            "canonical_url": request.build_absolute_uri(post.get_absolute_url()),
+            "canonical_url": canonical_url,
             "comments": comments,
             "comment_form": comment_form,
+            "webmentions": webmentions,
         },
     )
 

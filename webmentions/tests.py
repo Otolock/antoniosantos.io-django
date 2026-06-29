@@ -1,0 +1,319 @@
+from django.test import Client, TestCase, override_settings
+from django.urls import reverse
+from django.utils import timezone
+from unittest.mock import patch
+
+from blog.models import Post
+
+from .models import Webmention
+from .services import (
+    SourceVerificationResult,
+    WebmentionValidationError,
+    verify_source_links_to_target,
+)
+
+
+class ReceiveWebmentionTests(TestCase):
+    def setUp(self):
+        self.post = Post.objects.create(
+            title="Live post",
+            slug="live-post",
+            body="Hello.",
+            status=Post.PUBLISHED,
+            published_at=timezone.now(),
+        )
+        self.url = reverse("webmentions:receive")
+        self.source = "https://source.example/reply/"
+        self.target = "https://example.com/live-post/"
+
+    @override_settings(SITE_URL="https://example.com")
+    @patch("webmentions.views.verify_source_links_to_target")
+    def test_accepts_verified_webmention_without_csrf_token(self, verify):
+        verify.return_value = SourceVerificationResult(True)
+        csrf_client = Client(enforce_csrf_checks=True)
+
+        response = csrf_client.post(
+            self.url,
+            {"source": self.source, "target": self.target},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        mention = Webmention.objects.get(source_url=self.source, target_url=self.target)
+        self.assertEqual(mention.status, Webmention.PENDING)
+
+    @override_settings(SITE_URL="https://example.com")
+    @patch("webmentions.views.verify_source_links_to_target")
+    def test_rejects_missing_source_or_target(self, verify):
+        response = self.client.post(self.url, {"source": self.source})
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Webmention.objects.exists())
+        verify.assert_not_called()
+
+    @override_settings(SITE_URL="https://example.com")
+    @patch("webmentions.views.verify_source_links_to_target")
+    def test_rejects_same_source_and_target(self, verify):
+        response = self.client.post(
+            self.url,
+            {"source": self.target, "target": self.target},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Webmention.objects.exists())
+        verify.assert_not_called()
+
+    @override_settings(SITE_URL="https://example.com")
+    @patch("webmentions.views.verify_source_links_to_target")
+    def test_rejects_target_on_another_site(self, verify):
+        response = self.client.post(
+            self.url,
+            {
+                "source": self.source,
+                "target": "https://other.example/live-post/",
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Webmention.objects.exists())
+        verify.assert_not_called()
+
+    @override_settings(SITE_URL="https://example.com")
+    @patch("webmentions.views.verify_source_links_to_target")
+    def test_rejects_unpublished_post_targets(self, verify):
+        Post.objects.create(
+            title="Draft",
+            slug="draft-post",
+            body="Hidden.",
+            status=Post.DRAFT,
+        )
+
+        response = self.client.post(
+            self.url,
+            {
+                "source": self.source,
+                "target": "https://example.com/draft-post/",
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Webmention.objects.exists())
+        verify.assert_not_called()
+
+    @override_settings(SITE_URL="https://example.com")
+    @patch("webmentions.views.verify_source_links_to_target")
+    def test_rejects_source_that_does_not_link_to_target(self, verify):
+        verify.return_value = SourceVerificationResult(False)
+
+        response = self.client.post(
+            self.url,
+            {"source": self.source, "target": self.target},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        mention = Webmention.objects.get(source_url=self.source, target_url=self.target)
+        self.assertEqual(mention.status, Webmention.REJECTED)
+
+    @override_settings(SITE_URL="https://example.com")
+    @patch("webmentions.views.verify_source_links_to_target")
+    def test_marks_deleted_source_as_deleted(self, verify):
+        verify.return_value = SourceVerificationResult(False, source_deleted=True)
+
+        response = self.client.post(
+            self.url,
+            {"source": self.source, "target": self.target},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        mention = Webmention.objects.get(source_url=self.source, target_url=self.target)
+        self.assertEqual(mention.status, Webmention.DELETED)
+
+    @override_settings(SITE_URL="https://example.com")
+    @patch("webmentions.views.verify_source_links_to_target")
+    def test_rejected_fetch_error_is_recorded_for_valid_target(self, verify):
+        verify.side_effect = WebmentionValidationError("Source URL could not be fetched.")
+
+        response = self.client.post(
+            self.url,
+            {"source": self.source, "target": self.target},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        mention = Webmention.objects.get(source_url=self.source, target_url=self.target)
+        self.assertEqual(mention.status, Webmention.REJECTED)
+
+
+class VerifySourceLinksToTargetTests(TestCase):
+    source = "https://example.com/reply/"
+    target = "https://example.com/live-post/"
+    public_ip = {"8.8.8.8"}
+
+    @patch("webmentions.services._resolve_host_ips", return_value=public_ip)
+    @patch("webmentions.services.requests.Session")
+    def test_html_source_resolves_relative_links(self, session_class, resolve_ips):
+        session = FakeSession(
+            [
+                FakeResponse(
+                    200,
+                    '<article><a href="/live-post/">the post</a></article>',
+                    url=self.source,
+                    headers={"Content-Type": "text/html"},
+                )
+            ]
+        )
+        session_class.return_value = session
+
+        result = verify_source_links_to_target(self.source, self.target)
+
+        self.assertTrue(result.links_to_target)
+        self.assertEqual(session.calls[0][0], self.source)
+
+    @patch("webmentions.services._resolve_host_ips", return_value=public_ip)
+    @patch("webmentions.services.requests.Session")
+    def test_plain_text_source_can_mention_target(self, session_class, resolve_ips):
+        session = FakeSession(
+            [
+                FakeResponse(
+                    200,
+                    f"I replied to {self.target}",
+                    url=self.source,
+                    headers={"Content-Type": "text/plain"},
+                )
+            ]
+        )
+        session_class.return_value = session
+
+        result = verify_source_links_to_target(self.source, self.target)
+
+        self.assertTrue(result.links_to_target)
+
+    @patch("webmentions.services._resolve_host_ips", return_value=public_ip)
+    @patch("webmentions.services.requests.Session")
+    def test_json_source_can_mention_target(self, session_class, resolve_ips):
+        session = FakeSession(
+            [
+                FakeResponse(
+                    200,
+                    f'{{"type": ["h-entry"], "url": "{self.target}"}}',
+                    url=self.source,
+                    headers={"Content-Type": "application/json"},
+                )
+            ]
+        )
+        session_class.return_value = session
+
+        result = verify_source_links_to_target(self.source, self.target)
+
+        self.assertTrue(result.links_to_target)
+
+    @patch("webmentions.services._resolve_host_ips", return_value=public_ip)
+    @patch("webmentions.services.requests.Session")
+    def test_missing_link_returns_false(self, session_class, resolve_ips):
+        session = FakeSession(
+            [
+                FakeResponse(
+                    200,
+                    '<a href="https://example.com/other/">other</a>',
+                    url=self.source,
+                    headers={"Content-Type": "text/html"},
+                )
+            ]
+        )
+        session_class.return_value = session
+
+        result = verify_source_links_to_target(self.source, self.target)
+
+        self.assertFalse(result.links_to_target)
+
+    @patch("webmentions.services._resolve_host_ips", return_value=public_ip)
+    @patch("webmentions.services.requests.Session")
+    def test_unsupported_content_type_returns_false(self, session_class, resolve_ips):
+        response = FakeResponse(
+            200,
+            self.target,
+            url=self.source,
+            headers={"Content-Type": "image/png"},
+        )
+        session = FakeSession([response])
+        session_class.return_value = session
+
+        result = verify_source_links_to_target(self.source, self.target)
+
+        self.assertFalse(result.links_to_target)
+        self.assertTrue(response.closed)
+
+    @patch("webmentions.services._resolve_host_ips", return_value=public_ip)
+    @patch("webmentions.services.requests.Session")
+    def test_gone_source_is_treated_as_deleted(self, session_class, resolve_ips):
+        session = FakeSession([FakeResponse(410, "", url=self.source)])
+        session_class.return_value = session
+
+        result = verify_source_links_to_target(self.source, self.target)
+
+        self.assertFalse(result.links_to_target)
+        self.assertTrue(result.source_deleted)
+
+    @patch("webmentions.services._resolve_host_ips", return_value={"127.0.0.1"})
+    @patch("webmentions.services.requests.Session")
+    def test_private_source_host_is_not_fetched(self, session_class, resolve_ips):
+        with self.assertRaises(WebmentionValidationError):
+            verify_source_links_to_target(
+                "http://localhost/private/",
+                self.target,
+            )
+
+        session_class.return_value.get.assert_not_called()
+
+    @patch(
+        "webmentions.services._resolve_host_ips",
+        side_effect=[public_ip, public_ip, {"127.0.0.1"}],
+    )
+    @patch("webmentions.services.requests.Session")
+    def test_redirect_to_private_host_is_not_followed(self, session_class, resolve_ips):
+        session = FakeSession(
+            [
+                FakeResponse(
+                    302,
+                    "",
+                    url=self.source,
+                    headers={"Location": "http://127.0.0.1/admin/"},
+                )
+            ]
+        )
+        session_class.return_value = session
+
+        with self.assertRaises(WebmentionValidationError):
+            verify_source_links_to_target(self.source, self.target)
+
+        self.assertEqual(len(session.calls), 1)
+
+
+class FakeResponse:
+    encoding = "utf-8"
+
+    def __init__(self, status_code, body, url, headers=None):
+        self.status_code = status_code
+        self.body = body
+        self.url = url
+        self.headers = headers or {}
+        self.closed = False
+
+    def iter_content(self, chunk_size=1, decode_unicode=False):
+        if decode_unicode:
+            yield self.body
+        else:
+            yield self.body.encode(self.encoding)
+
+    def close(self):
+        self.closed = True
+
+
+class FakeSession:
+    max_redirects = None
+
+    def __init__(self, responses):
+        self.responses = list(responses)
+        self.calls = []
+
+    def get(self, url, **kwargs):
+        self.calls.append((url, kwargs))
+        return self.responses.pop(0)

@@ -14,6 +14,7 @@ from . import llm
 from .admin import PostAdmin
 from .feeds import LEGACY_RSS_GUID_SLUGS
 from .models import Comment, Post, PostMedia, Subscriber
+from webmentions.models import Webmention
 
 
 class PostTests(TestCase):
@@ -324,6 +325,73 @@ class PostViewTests(TestCase):
             '<link rel="canonical" href="https://example.com/live-post/">',
             html=True,
         )
+
+    def test_post_detail_lists_approved_webmentions(self):
+        self.make_post()
+        Webmention.objects.create(
+            source_url="https://source.example/reply/",
+            target_url="http://testserver/live-post/",
+            title="A reply elsewhere",
+            status=Webmention.APPROVED,
+        )
+
+        response = self.client.get(
+            reverse("blog:post_detail", args=["live-post"])
+        )
+
+        self.assertContains(response, "Webmentions")
+        self.assertContains(response, "A reply elsewhere")
+        self.assertContains(response, 'href="https://source.example/reply/"')
+        self.assertContains(response, 'rel="nofollow ugc"')
+
+    def test_post_detail_uses_source_url_for_untitled_webmentions(self):
+        self.make_post()
+        Webmention.objects.create(
+            source_url="https://source.example/reply/",
+            target_url="http://testserver/live-post/",
+            status=Webmention.APPROVED,
+        )
+
+        response = self.client.get(
+            reverse("blog:post_detail", args=["live-post"])
+        )
+
+        self.assertContains(response, "https://source.example/reply/")
+
+    def test_post_detail_hides_unapproved_webmentions(self):
+        self.make_post()
+        for status in [Webmention.PENDING, Webmention.REJECTED, Webmention.SPAM]:
+            Webmention.objects.create(
+                source_url=f"https://source.example/{status}/",
+                target_url="http://testserver/live-post/",
+                title=f"{status} mention",
+                status=status,
+            )
+
+        response = self.client.get(
+            reverse("blog:post_detail", args=["live-post"])
+        )
+
+        self.assertNotContains(response, "Webmentions")
+        self.assertNotContains(response, "pending mention")
+        self.assertNotContains(response, "rejected mention")
+        self.assertNotContains(response, "spam mention")
+
+    def test_post_detail_hides_webmentions_for_other_targets(self):
+        self.make_post()
+        Webmention.objects.create(
+            source_url="https://source.example/reply/",
+            target_url="http://testserver/other-post/",
+            title="Wrong target",
+            status=Webmention.APPROVED,
+        )
+
+        response = self.client.get(
+            reverse("blog:post_detail", args=["live-post"])
+        )
+
+        self.assertNotContains(response, "Webmentions")
+        self.assertNotContains(response, "Wrong target")
 
     def test_legacy_posts_url_returns_permanent_redirect(self):
         self.make_post()

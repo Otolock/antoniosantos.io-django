@@ -29,6 +29,21 @@
     </div>
 </article>
 
+{% if webmentions %}
+    <section class="post-webmentions prose prose-invert" aria-labelledby="webmentions-heading">
+        <h2 id="webmentions-heading">Webmentions</h2>
+        <ul>
+            {% for webmention in webmentions %}
+                <li>
+                    <a href="{{ webmention.source_url }}" rel="nofollow ugc">
+                        {{ webmention.title|default:webmention.source_url }}
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    </section>
+{% endif %}
+
 <nav class="comment-actions" id="comment-actions" aria-label="Post feedback">
     <form class="upvote-form" action="{{ post.get_absolute_url }}#comment-actions" method="post" data-upvote-form>
         {% csrf_token %}

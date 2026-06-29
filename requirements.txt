@@ -1,2 +1,4 @@
+beautifulsoup4==4.15.0
 Django==6.0.6
 Markdown==3.8.2
+requests==2.34.2
