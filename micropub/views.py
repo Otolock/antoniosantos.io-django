@@ -57,9 +57,13 @@ def _handle_post(request):
 
     title, body = title_and_body_from_leading_heading(content)
     if not title:
+        title = entry.get("name", "").strip() or title_from_content(content)
+        body = content
+
+    if not title:
         return _error(
             "invalid_request",
-            "Post content must start with a Markdown heading for the title.",
+            "Post content is required.",
             status=400,
         )
 
@@ -90,6 +94,7 @@ def _entry_from_request(request):
 
         properties = payload.get("properties", payload)
         return {
+            "name": _first_property_value(properties.get("name")),
             "content": _first_property_value(properties.get("content")),
         }
 
@@ -97,6 +102,7 @@ def _entry_from_request(request):
         raise ValueError("Only h=entry posts are supported.")
 
     return {
+        "name": request.POST.get("name") or "",
         "content": (
             request.POST.get("content")
             or request.POST.get("content[value]")
@@ -128,7 +134,10 @@ def _is_authenticated(request):
     if auth_header.startswith("Bearer "):
         return auth_header.removeprefix("Bearer ").strip() == token
 
-    return request.POST.get("access_token") == token
+    return (
+        request.POST.get("access_token") == token
+        or request.GET.get("access_token") == token
+    )
 
 
 def _unauthorized():
@@ -182,6 +191,14 @@ def _plain_title(markdown_text):
     markdown_text = re.sub(r"\s+#+\s*$", "", markdown_text).strip()
     rendered = markdown(markdown_text)
     return strip_tags(rendered).strip()
+
+
+def title_from_content(content):
+    line_index = _first_content_line_index(content.splitlines())
+    if line_index is None:
+        return ""
+
+    return _plain_title(content.splitlines()[line_index])[:200]
 
 
 def unique_post_slug(title):
