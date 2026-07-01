@@ -17,6 +17,16 @@ from .models import Comment, Post, PostMedia, Subscriber
 from webmentions.models import Webmention
 
 
+TEST_STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
+
 class PostTests(TestCase):
     def make_post(self, **kwargs):
         defaults = {
@@ -146,16 +156,7 @@ class CommentTests(TestCase):
         self.assertIsNone(comment.approved_at)
 
 
-@override_settings(
-    STORAGES={
-        "default": {
-            "BACKEND": "django.core.files.storage.FileSystemStorage",
-        },
-        "staticfiles": {
-            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-        },
-    },
-)
+@override_settings(STORAGES=TEST_STORAGES)
 class PostViewTests(TestCase):
     def make_post(self, **kwargs):
         defaults = {
@@ -590,6 +591,7 @@ class PostViewTests(TestCase):
         self.assertEqual(Comment.objects.count(), 0)
 
 
+@override_settings(STORAGES=TEST_STORAGES)
 class SubscribeViewTests(TestCase):
     def test_subscribe_page_shows_email_form(self):
         response = self.client.get(reverse("blog:subscribe"))
@@ -1042,7 +1044,10 @@ class PostMediaTests(TestCase):
         media.slug = "renamed-hero"
         media.save()
 
-        self.assertEqual(media.markdown_snippet, "![Hero Photo](/media/renamed-hero/)")
+        self.assertEqual(
+            media.markdown_snippet,
+            f"![Hero Photo]({media.file.url})",
+        )
 
     def test_image_media_has_markdown_image_snippet(self):
         media = PostMedia(
@@ -1055,7 +1060,7 @@ class PostMediaTests(TestCase):
         self.assertTrue(media.is_image)
         self.assertEqual(
             media.markdown_snippet,
-            "![A bright sky](/media/hero-photo/)",
+            f"![A bright sky]({media.file.url})",
         )
 
     def test_non_image_media_has_markdown_link_snippet(self):
@@ -1068,7 +1073,7 @@ class PostMediaTests(TestCase):
         self.assertFalse(media.is_image)
         self.assertEqual(
             media.markdown_snippet,
-            "[Launch notes](/media/launch-notes/)",
+            f"[Launch notes]({media.file.url})",
         )
 
     def test_media_detail_redirects_to_uploaded_file(self):
@@ -1087,6 +1092,7 @@ class PostMediaTests(TestCase):
         )
 
 
+@override_settings(STORAGES=TEST_STORAGES)
 class PostAdminTests(TestCase):
     def test_reserved_slugs_are_rejected_by_admin_validation(self):
         user = get_user_model().objects.create_superuser(
@@ -1141,7 +1147,7 @@ class PostAdminTests(TestCase):
         self.assertContains(response, "Hero photo")
         self.assertContains(
             response,
-            "![A bright sky](/media/hero-photo/)",
+            "![A bright sky](/media/blog/media/2026/06/hero.png)",
         )
 
     def test_admin_can_upload_post_media(self):
@@ -1174,7 +1180,10 @@ class PostAdminTests(TestCase):
         self.assertEqual(media.title, "Hero photo")
         self.assertEqual(media.slug, "custom-hero")
         self.assertTrue(media.file.name.startswith("blog/media/"))
-        self.assertEqual(media.markdown_snippet, "![A bright sky](/media/custom-hero/)")
+        self.assertEqual(
+            media.markdown_snippet,
+            f"![A bright sky]({media.file.url})",
+        )
 
     def test_admin_save_sets_publish_date_when_published_without_date(self):
         post = Post.objects.create(
@@ -1199,6 +1208,7 @@ class PostAdminTests(TestCase):
                 "slug": "draft-post",
                 "body": "Draft body",
                 "description": "",
+                "upvotes_count": "0",
                 "status": Post.PUBLISHED,
                 "published_at_0": "",
                 "published_at_1": "",
