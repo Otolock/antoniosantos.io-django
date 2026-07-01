@@ -8,7 +8,6 @@ from django.utils import timezone
 from ipaddress import ip_address
 
 from .forms import CommentForm, SubscribeForm
-from .micropub import micropub
 from .models import Comment, Post, PostMedia, Subscriber
 from webmentions.models import Webmention
 

@@ -8,7 +8,7 @@ from django.utils.text import slugify
 from django.views.decorators.csrf import csrf_exempt
 from markdown import markdown
 
-from .models import Post, RESERVED_POST_SLUGS
+from blog.models import Post, RESERVED_POST_SLUGS
 
 
 HEADING_RE = re.compile(r"^\s{0,3}(#{1,6})\s+(.+?)\s*$")

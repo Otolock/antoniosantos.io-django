@@ -80,6 +80,7 @@ CSRF_TRUSTED_ORIGINS = [
 
 INSTALLED_APPS = [
     'blog',
+    'micropub',
     'webmentions',
     'django.contrib.admin',
     'django.contrib.auth',
