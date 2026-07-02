@@ -6,6 +6,8 @@ from django.utils.text import slugify
 from markdown import markdown
 from pathlib import Path
 
+from .html import sanitize_html
+
 
 RESERVED_POST_SLUGS = {
     "about",
@@ -27,10 +29,12 @@ RESERVED_POST_SLUGS = {
 class Post(models.Model):
     DRAFT = "draft"
     PUBLISHED = "published"
+    DELETED = "deleted"
 
     STATUS_CHOICES = [
         (DRAFT, "Draft"),
         (PUBLISHED, "Published"),
+        (DELETED, "Deleted"),
     ]
 
     title = models.CharField(max_length=200)
@@ -77,7 +81,7 @@ class Post(models.Model):
 
     @property
     def body_html(self):
-        return markdown(self.body)
+        return sanitize_html(markdown(self.body))
 
     @property
     def is_published(self):

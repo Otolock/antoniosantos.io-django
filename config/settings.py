@@ -81,6 +81,7 @@ CSRF_TRUSTED_ORIGINS = [
 INSTALLED_APPS = [
     'blog',
     'micropub',
+    'indieauth',
     'webmentions',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -207,5 +208,5 @@ POST_DESCRIPTION_TARGET_CHARS = int(
     os.environ.get("POST_DESCRIPTION_TARGET_CHARS", "155")
 )
 
-# Micropub
-MICROPUB_TOKEN = os.environ.get("MICROPUB_TOKEN", "")
+# IndieAuth
+INDIEAUTH_ME = os.environ.get("INDIEAUTH_ME", SITE_URL.rstrip("/") + "/")

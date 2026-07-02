@@ -44,6 +44,16 @@ class PostTests(TestCase):
 
         self.assertIn("<strong>world</strong>", post.body_html)
 
+    def test_body_html_strips_scriptable_html(self):
+        post = self.make_post(
+            body='<script>alert(1)</script><a href="javascript:alert(1)" onclick="x()">x</a>'
+        )
+
+        self.assertNotIn("<script", post.body_html)
+        self.assertNotIn("javascript:", post.body_html)
+        self.assertNotIn("onclick", post.body_html)
+        self.assertIn(">x</a>", post.body_html)
+
     def test_is_published_requires_published_status_and_publish_date(self):
         live_post = self.make_post(slug="live")
         draft_post = self.make_post(

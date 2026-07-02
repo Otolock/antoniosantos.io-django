@@ -1,0 +1,49 @@
+{% extends "blog/base.html" %}
+
+{% block title %}Authorize {{ client_metadata.client_name }}{% endblock %}
+
+{% block content %}
+<section class="indieauth-consent">
+    <h1>Authorize application</h1>
+
+    <p>
+        An application is requesting access to your blog.
+    </p>
+
+    <div class="indieauth-client">
+        {% if client_metadata.logo_uri %}
+            <img src="{{ client_metadata.logo_uri }}" alt="" class="indieauth-logo">
+        {% endif %}
+        <p class="indieauth-client-name">{{ client_metadata.client_name }}</p>
+        {% if client_metadata.client_uri %}
+            <p><a href="{{ client_metadata.client_uri }}">{{ client_metadata.client_uri }}</a></p>
+        {% endif %}
+        <p class="indieauth-client-id">{{ client_id }}</p>
+    </div>
+
+    <h2>Requested scopes</h2>
+    <ul class="indieauth-scopes">
+        {% for scope in scopes %}
+            <li><code>{{ scope }}</code></li>
+        {% empty %}
+            <li>No scopes (authentication only).</li>
+        {% endfor %}
+    </ul>
+
+    <p class="indieauth-redirect">
+        It will be able to redirect to:
+        <code>{{ redirect_uri }}</code>
+    </p>
+
+    <form method="post" action="{% url 'indieauth:auth' %}">
+        {% csrf_token %}
+        {% for key, value in params.items %}
+            <input type="hidden" name="{{ key }}" value="{{ value }}">
+        {% endfor %}
+        <div class="indieauth-actions">
+            <button type="submit" name="action" value="approve" class="btn btn-primary">Approve</button>
+            <button type="submit" name="action" value="deny" class="btn">Deny</button>
+        </div>
+    </form>
+</section>
+{% endblock %}
