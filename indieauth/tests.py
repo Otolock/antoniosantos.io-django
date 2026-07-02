@@ -123,11 +123,39 @@ class AuthorizationTests(TestCase):
         self.assertIn("error=invalid_request", response["Location"])
         self.assertEqual(AuthCode.objects.count(), 0)
 
-    def test_scoped_request_requires_s256_pkce(self):
+    def test_scoped_request_accepts_plain_pkce(self):
         self.params["code_challenge_method"] = "plain"
         response = self.client.get(reverse("indieauth:auth"), self.params)
-        self.assertEqual(response.status_code, 302)
-        self.assertIn("error=invalid_request", response["Location"])
+        self.assertEqual(response.status_code, 200)
+
+    def test_accepts_published_custom_scheme_redirect_uri(self):
+        self.params["client_id"] = "https://ia-writer.example/"
+        self.params["redirect_uri"] = "ia-writer://indieauth-callback"
+        with mock.patch(
+            "indieauth.views.fetch_client_metadata",
+            return_value={
+                "client_id": self.params["client_id"],
+                "client_name": "iA Writer",
+                "redirect_uris": ["ia-writer://indieauth-callback"],
+            },
+        ):
+            response = self.client.get(reverse("indieauth:auth"), self.params)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "iA Writer")
+
+    def test_rejects_unpublished_custom_scheme_redirect_uri(self):
+        self.params["client_id"] = "https://ia-writer.example/"
+        self.params["redirect_uri"] = "ia-writer://indieauth-callback"
+        with mock.patch(
+            "indieauth.views.fetch_client_metadata",
+            return_value={
+                "client_id": self.params["client_id"],
+                "client_name": "iA Writer",
+                "redirect_uris": [],
+            },
+        ):
+            response = self.client.get(reverse("indieauth:auth"), self.params)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(AuthCode.objects.count(), 0)
 
     def test_approve_issues_code_and_redirects_with_iss(self):
@@ -186,6 +214,25 @@ class TokenTests(TestCase):
         self.assertTrue(AccessToken.objects.filter(token=data["access_token"]).exists())
         self.code.refresh_from_db()
         self.assertTrue(self.code.used)
+
+    def test_exchange_code_with_plain_pkce(self):
+        verifier, challenge = _pkce_pair("plain")
+        self.code.code_challenge = challenge
+        self.code.code_challenge_method = "plain"
+        self.code.save(update_fields=["code_challenge", "code_challenge_method"])
+
+        response = self.client.post(
+            reverse("indieauth:token"),
+            {
+                "grant_type": "authorization_code",
+                "code": "test-code",
+                "client_id": "http://127.0.0.1:8000/",
+                "redirect_uri": "http://127.0.0.1:8000/callback",
+                "code_verifier": verifier,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("access_token", response.json())
 
     def test_code_is_single_use(self):
         payload = {

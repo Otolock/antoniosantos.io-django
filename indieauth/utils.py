@@ -248,7 +248,11 @@ def redirect_uri_allowed(client_id, redirect_uri, client_metadata):
     if _host_matches(client_id, redirect_uri):
         return True
 
-    published = client_metadata.get("redirect_uris", [])
+    published = [
+        canonicalize_url(uri)
+        for uri in client_metadata.get("redirect_uris", [])
+        if isinstance(uri, str)
+    ]
     return redirect_uri in published
 
 

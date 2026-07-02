@@ -49,7 +49,7 @@ def metadata(request):
             "scopes_supported": ["profile", "email", "create", "update", "delete"],
             "response_types_supported": ["code"],
             "grant_types_supported": ["authorization_code"],
-            "code_challenge_methods_supported": ["S256"],
+            "code_challenge_methods_supported": ["S256", "plain"],
             "authorization_response_iss_parameter_supported": True,
             "service_documentation": "https://indieauth.spec.indieweb.org/",
         }
@@ -89,17 +89,17 @@ def _validate_auth_request(params):
     if params["scope"]:
         if not params["code_challenge"]:
             return None, {"error": "invalid_request", "error_description": "Scoped authorization requests require PKCE."}
-        if (params["code_challenge_method"] or "S256") != "S256":
-            return None, {"error": "invalid_request", "error_description": "Scoped authorization requests require S256 PKCE."}
+        if (params["code_challenge_method"] or "S256") not in {"S256", "plain"}:
+            return None, {"error": "invalid_request", "error_description": "Unsupported PKCE method."}
 
     # Canonicalize for comparison but keep originals as sent.
     client_id = canonicalize_url(params["client_id"])
     redirect_uri = canonicalize_url(params["redirect_uri"])
 
-    if not _is_http_url(client_id) or not _is_http_url(redirect_uri):
+    if not _is_http_url(client_id) or not _is_redirect_url(redirect_uri):
         return None, {
             "error": "invalid_request",
-            "error_description": "client_id and redirect_uri must be HTTP(S) URLs with hosts.",
+            "error_description": "client_id must be an HTTP(S) URL and redirect_uri must be a valid callback URL.",
         }
 
     client_metadata = fetch_client_metadata(client_id)
@@ -155,7 +155,7 @@ def auth(request):
 
     code_challenge = params.get("code_challenge", "")
     code_challenge_method = params.get("code_challenge_method") or "S256"
-    if code_challenge and code_challenge_method != "S256":
+    if code_challenge and code_challenge_method not in {"S256", "plain"}:
         return _redirect_with_error(
             params["redirect_uri"], "invalid_request", params.get("state", "")
         )
@@ -326,6 +326,17 @@ def _render_error(request, title, description):
 def _is_http_url(url):
     parts = urlsplit(url)
     if parts.scheme not in {"http", "https"} or not parts.hostname:
+        return False
+    try:
+        parts.port
+    except ValueError:
+        return False
+    return True
+
+
+def _is_redirect_url(url):
+    parts = urlsplit(url)
+    if not parts.scheme or parts.scheme.lower() in {"data", "javascript"}:
         return False
     try:
         parts.port
