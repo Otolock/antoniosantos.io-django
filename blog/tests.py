@@ -1087,6 +1087,73 @@ class PostAdminTests(TestCase):
             "![A bright sky](/media/blog/media/2026/06/hero.png)",
         )
 
+    def test_post_editor_shows_inline_description_generation_control(self):
+        post = Post.objects.create(
+            title="Draft post",
+            slug="draft-post",
+            body="Draft body",
+            status=Post.DRAFT,
+        )
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("admin:blog_post_change", args=[post.pk]))
+
+        self.assertContains(response, 'name="_generate_description"')
+        self.assertContains(response, 'aria-label="Generate description"')
+
+    def test_post_admin_orders_drafts_then_published_newest_first(self):
+        older_published = Post.objects.create(
+            title="Older live post",
+            slug="older-live-post",
+            body="Live body",
+            status=Post.PUBLISHED,
+            published_at=timezone.now() - timezone.timedelta(days=30),
+        )
+        newer_published = Post.objects.create(
+            title="Newer live post",
+            slug="newer-live-post",
+            body="Live body",
+            status=Post.PUBLISHED,
+            published_at=timezone.now(),
+        )
+        draft = Post.objects.create(
+            title="Draft post",
+            slug="draft-post",
+            body="Draft body",
+            status=Post.DRAFT,
+            published_at=None,
+        )
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("admin:blog_post_changelist"))
+        posts = list(response.context["cl"].result_list)
+
+        self.assertEqual(posts, [draft, newer_published, older_published])
+
+    def test_post_admin_exposes_sortable_upvote_count(self):
+        post = Post.objects.create(
+            title="Popular post",
+            slug="popular-post",
+            body="Post body",
+            status=Post.DRAFT,
+            upvotes_count=7,
+        )
+        model_admin = PostAdmin(Post, admin.site)
+
+        self.assertIn("upvotes", model_admin.list_display)
+        self.assertEqual(model_admin.upvotes(post), 7)
+        self.assertEqual(model_admin.upvotes.admin_order_field, "upvotes_count")
+
     def test_admin_can_upload_post_media(self):
         user = get_user_model().objects.create_superuser(
             username="admin",
@@ -1316,6 +1383,84 @@ class PostAdminTests(TestCase):
             reverse("admin:blog_post_change", args=[post.pk]),
         )
         post.refresh_from_db()
+        self.assertEqual(post.description, "Generated description")
+        mock_generate.assert_called_once_with(post)
+
+    @override_settings(OPENROUTER_API_KEY="test-key")
+    @patch("blog.admin.generate_post_description")
+    def test_generate_description_submit_saves_draft_changes_first(self, mock_generate):
+        post = Post.objects.create(
+            title="Draft post",
+            slug="draft-post",
+            body="Old draft body",
+            status=Post.DRAFT,
+            published_at=None,
+        )
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        def generate(post_to_describe):
+            self.assertEqual(post_to_describe.body, "Updated draft body")
+            return "Generated from updated body"
+
+        mock_generate.side_effect = generate
+        response = self.client.post(
+            reverse("admin:blog_post_change", args=[post.pk]),
+            {
+                "title": "Draft post",
+                "slug": "draft-post",
+                "body": "Updated draft body",
+                "description": "",
+                "upvotes_count": "0",
+                "status": Post.DRAFT,
+                "published_at_0": "",
+                "published_at_1": "",
+                "_generate_description": "1",
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("admin:blog_post_change", args=[post.pk]),
+        )
+        post.refresh_from_db()
+        self.assertEqual(post.body, "Updated draft body")
+        self.assertEqual(post.description, "Generated from updated body")
+
+    @override_settings(OPENROUTER_API_KEY="test-key")
+    @patch("blog.admin.generate_post_description", return_value="Generated description")
+    def test_generate_description_submit_can_create_draft(self, mock_generate):
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("admin:blog_post_add"),
+            {
+                "title": "Draft post",
+                "slug": "draft-post",
+                "body": "Draft body",
+                "description": "",
+                "upvotes_count": "0",
+                "status": Post.DRAFT,
+                "published_at_0": "",
+                "published_at_1": "",
+                "_generate_description": "1",
+            },
+        )
+
+        post = Post.objects.get()
+        self.assertRedirects(
+            response,
+            reverse("admin:blog_post_change", args=[post.pk]),
+        )
         self.assertEqual(post.description, "Generated description")
         mock_generate.assert_called_once_with(post)
 

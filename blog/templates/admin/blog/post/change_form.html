@@ -1,19 +1,79 @@
 {% extends "admin/change_form.html" %}
 
-{% block object-tools-items %}
-    {% if change and original %}
-        <li>
-            <form method="post" action="{% url 'admin:blog_post_generate_description' original.pk %}">
-                {% csrf_token %}
-                <button class="button" type="submit">Generate description</button>
-            </form>
-        </li>
-    {% endif %}
+{% block extrahead %}
     {{ block.super }}
+    <style>
+        .description-field-with-action {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            max-width: 42rem;
+        }
+
+        .description-field-with-action #id_description {
+            flex: 1 1 auto;
+            max-width: none;
+        }
+
+        .description-generate-control {
+            margin: 0;
+        }
+
+        .description-generate-button {
+            align-items: center;
+            display: inline-flex;
+            font-weight: 700;
+            justify-content: center;
+            min-height: 2rem;
+            min-width: 2.25rem;
+            padding-inline: 0.55rem;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 767px) {
+            .description-field-with-action {
+                align-items: stretch;
+                max-width: 100%;
+            }
+
+            .description-generate-button {
+                min-width: 3rem;
+            }
+        }
+    </style>
 {% endblock %}
 
 {% block after_field_sets %}
     {{ block.super }}
+
+    <div id="description-generate-control" class="description-generate-control" hidden>
+        <button
+            class="button description-generate-button"
+            type="submit"
+            name="_generate_description"
+            value="1"
+            title="Generate description"
+            aria-label="Generate description"
+        >AI</button>
+    </div>
+
+    <script>
+        (function() {
+            const control = document.getElementById("description-generate-control");
+            const input = document.getElementById("id_description");
+
+            if (!control || !input || !input.parentNode) {
+                return;
+            }
+
+            const wrapper = document.createElement("div");
+            wrapper.className = "description-field-with-action";
+            input.parentNode.insertBefore(wrapper, input);
+            wrapper.appendChild(input);
+            wrapper.appendChild(control);
+            control.hidden = false;
+        })();
+    </script>
 
     <fieldset class="module aligned">
         <h2>Media</h2>

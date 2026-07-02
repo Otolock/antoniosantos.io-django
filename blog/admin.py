@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.contrib import messages
+from django.db.models import Case, F, IntegerField, Value, When
 from django.http import HttpResponseRedirect
 from django.urls import path, reverse
 from django.utils.html import format_html
@@ -27,12 +28,24 @@ class TagAdmin(admin.ModelAdmin):
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
     change_form_template = "admin/blog/post/change_form.html"
-    list_display = ["title", "status", "published_at"]
+    list_display = ["title", "status", "published_at", "upvotes"]
     list_filter = ["status", "tags"]
     search_fields = ["title", "body", "tags__name"]
     prepopulated_fields = {"slug": ("title",)}
     filter_horizontal = ["tags"]
     actions = ["publish_posts", "unpublish_posts", "generate_descriptions"]
+
+    def get_ordering(self, request):
+        return [
+            Case(
+                When(status=Post.DRAFT, then=Value(0)),
+                When(status=Post.PUBLISHED, then=Value(1)),
+                default=Value(2),
+                output_field=IntegerField(),
+            ),
+            F("published_at").desc(nulls_last=True),
+            "-pk",
+        ]
 
     def render_change_form(self, request, context, *args, **kwargs):
         context["available_media"] = PostMedia.objects.all()[:25]
@@ -73,6 +86,25 @@ class PostAdmin(admin.ModelAdmin):
             )
             return HttpResponseRedirect(redirect_url)
 
+        self._generate_description(request, post)
+
+        return HttpResponseRedirect(redirect_url)
+
+    def response_add(self, request, obj, post_url_continue=None):
+        if "_generate_description" in request.POST:
+            self._generate_description(request, obj)
+            return HttpResponseRedirect(reverse("admin:blog_post_change", args=[obj.pk]))
+
+        return super().response_add(request, obj, post_url_continue)
+
+    def response_change(self, request, obj):
+        if "_generate_description" in request.POST:
+            self._generate_description(request, obj)
+            return HttpResponseRedirect(reverse("admin:blog_post_change", args=[obj.pk]))
+
+        return super().response_change(request, obj)
+
+    def _generate_description(self, request, post):
         try:
             post.description = generate_post_description(post)
         except DescriptionGenerationError as error:
@@ -81,15 +113,18 @@ class PostAdmin(admin.ModelAdmin):
                 str(error),
                 messages.ERROR,
             )
-        else:
-            post.save(update_fields=["description"])
-            self.message_user(
-                request,
-                "Generated a new description.",
-                messages.SUCCESS,
-            )
+            return
 
-        return HttpResponseRedirect(redirect_url)
+        post.save(update_fields=["description"])
+        self.message_user(
+            request,
+            "Saved changes and generated a new description.",
+            messages.SUCCESS,
+        )
+
+    @admin.display(ordering="upvotes_count", description="Upvotes")
+    def upvotes(self, obj):
+        return obj.upvotes_count
 
     @admin.action(description="Publish selected posts")
     def publish_posts(self, request, queryset):
