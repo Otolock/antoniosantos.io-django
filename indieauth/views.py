@@ -10,7 +10,7 @@ from django.http import (
 )
 from django.template.response import TemplateResponse
 from django.urls import reverse
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.views.decorators.http import require_http_methods
 
 from .models import AccessToken, AuthCode
@@ -114,8 +114,16 @@ def _validate_auth_request(params):
     return client_metadata, None
 
 
+@csrf_exempt
 @require_http_methods(["GET", "POST"])
 def auth(request):
+    if request.method == "POST" and request.POST.get("grant_type") == "authorization_code":
+        return _exchange_profile_code(request)
+    return _auth_consent(request)
+
+
+@csrf_protect
+def _auth_consent(request):
     params = _collect_auth_params(request)
 
     if not request.user.is_authenticated:
@@ -206,37 +214,22 @@ def _exchange_code(request):
     code = request.POST.get("code", "")
     client_id = canonicalize_url(request.POST.get("client_id", ""))
     redirect_uri = canonicalize_url(request.POST.get("redirect_uri", ""))
-    code_verifier = request.POST.get("code_verifier", "")
 
     if not code or not client_id or not redirect_uri:
         return _token_error("invalid_request", "code, client_id and redirect_uri are required.")
 
-    try:
-        auth_code = AuthCode.objects.get(code=code)
-    except AuthCode.DoesNotExist:
-        return _token_error("invalid_grant", "Authorization code not found.")
-
-    if auth_code.used:
-        return _token_error("invalid_grant", "Authorization code already used.")
-    if auth_code.is_expired():
-        auth_code.delete()
-        return _token_error("invalid_grant", "Authorization code expired.")
-    if auth_code.client_id != client_id:
-        return _token_error("invalid_grant", "client_id does not match.")
-    if auth_code.redirect_uri != redirect_uri:
-        return _token_error("invalid_grant", "redirect_uri does not match.")
-    if not verify_pkce(code_verifier, auth_code.code_challenge, auth_code.code_challenge_method):
-        return _token_error("invalid_grant", "PKCE verification failed.")
+    auth_code, error = _validate_code_exchange(request, client_id, redirect_uri)
+    if error:
+        return error
     if not auth_code.scope:
         # Per spec, the token endpoint MUST NOT issue an access token when no
         # scope was requested; the code should have been redeemed at the auth
         # endpoint for a profile URL only.
         return _token_error("invalid_scope", "No scope was requested; cannot issue an access token.")
 
-    with transaction.atomic():
-        updated = AuthCode.objects.filter(pk=auth_code.pk, used=False).update(used=True)
-        if updated == 0:
-            return _token_error("invalid_grant", "Authorization code already used.")
+    error = _mark_code_used(auth_code)
+    if error:
+        return error
 
     token = AccessToken.generate()
     access_token = AccessToken.objects.create(
@@ -254,6 +247,57 @@ def _exchange_code(request):
             "me": access_token.me,
         }
     )
+
+
+def _exchange_profile_code(request):
+    code = request.POST.get("code", "")
+    client_id = canonicalize_url(request.POST.get("client_id", ""))
+    redirect_uri = canonicalize_url(request.POST.get("redirect_uri", ""))
+
+    if not code or not client_id or not redirect_uri:
+        return _token_error("invalid_request", "code, client_id and redirect_uri are required.")
+
+    auth_code, error = _validate_code_exchange(request, client_id, redirect_uri)
+    if error:
+        return error
+
+    error = _mark_code_used(auth_code)
+    if error:
+        return error
+
+    return JsonResponse({"me": auth_code.me})
+
+
+def _validate_code_exchange(request, client_id, redirect_uri):
+    code = request.POST.get("code", "")
+    code_verifier = request.POST.get("code_verifier", "")
+
+    try:
+        auth_code = AuthCode.objects.get(code=code)
+    except AuthCode.DoesNotExist:
+        return None, _token_error("invalid_grant", "Authorization code not found.")
+
+    if auth_code.used:
+        return None, _token_error("invalid_grant", "Authorization code already used.")
+    if auth_code.is_expired():
+        auth_code.delete()
+        return None, _token_error("invalid_grant", "Authorization code expired.")
+    if auth_code.client_id != client_id:
+        return None, _token_error("invalid_grant", "client_id does not match.")
+    if auth_code.redirect_uri != redirect_uri:
+        return None, _token_error("invalid_grant", "redirect_uri does not match.")
+    if not verify_pkce(code_verifier, auth_code.code_challenge, auth_code.code_challenge_method):
+        return None, _token_error("invalid_grant", "PKCE verification failed.")
+
+    return auth_code, None
+
+
+def _mark_code_used(auth_code):
+    with transaction.atomic():
+        updated = AuthCode.objects.filter(pk=auth_code.pk, used=False).update(used=True)
+        if updated == 0:
+            return _token_error("invalid_grant", "Authorization code already used.")
+    return None
 
 
 @csrf_exempt

@@ -7,7 +7,8 @@
     <h1>Authorize application</h1>
 
     <p>
-        An application is requesting access to your blog.
+        {{ client_metadata.client_name }} is asking you to confirm your identity as
+        <strong>{{ params.me }}</strong>.
     </p>
 
     <div class="indieauth-client">
@@ -26,7 +27,7 @@
         {% for scope in scopes %}
             <li><code>{{ scope }}</code></li>
         {% empty %}
-            <li>No scopes (authentication only).</li>
+            <li>Authentication only. This does not grant posting access.</li>
         {% endfor %}
     </ul>
 

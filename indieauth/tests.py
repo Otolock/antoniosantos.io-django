@@ -293,6 +293,41 @@ class TokenTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["error"], "invalid_scope")
 
+    def test_auth_endpoint_exchanges_no_scope_code_for_profile_url(self):
+        self.code.scope = ""
+        self.code.save(update_fields=["scope"])
+        response = self.client.post(
+            reverse("indieauth:auth"),
+            {
+                "grant_type": "authorization_code",
+                "code": "test-code",
+                "client_id": "http://127.0.0.1:8000/",
+                "redirect_uri": "http://127.0.0.1:8000/callback",
+                "code_verifier": self.verifier,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"me": "https://antoniosantos.io/"})
+        self.code.refresh_from_db()
+        self.assertTrue(self.code.used)
+
+    def test_auth_endpoint_code_exchange_does_not_require_login_session(self):
+        self.client.logout()
+        self.code.scope = ""
+        self.code.save(update_fields=["scope"])
+        response = self.client.post(
+            reverse("indieauth:auth"),
+            {
+                "grant_type": "authorization_code",
+                "code": "test-code",
+                "client_id": "http://127.0.0.1:8000/",
+                "redirect_uri": "http://127.0.0.1:8000/callback",
+                "code_verifier": self.verifier,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["me"], "https://antoniosantos.io/")
+
     def test_unsupported_grant_type(self):
         response = self.client.post(
             reverse("indieauth:token"),
