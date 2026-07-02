@@ -26,6 +26,17 @@ RESERVED_POST_SLUGS = {
 }
 
 
+class Tag(models.Model):
+    name = models.CharField(max_length=80, unique=True)
+    slug = models.SlugField(max_length=100, unique=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
 class Post(models.Model):
     DRAFT = "draft"
     PUBLISHED = "published"
@@ -42,6 +53,7 @@ class Post(models.Model):
     body = models.TextField()
     description = models.CharField(max_length=300, blank=True)
     upvotes_count = models.PositiveIntegerField(default=0)
+    tags = models.ManyToManyField(Tag, related_name="posts", blank=True)
 
     status = models.CharField(
         max_length=20,

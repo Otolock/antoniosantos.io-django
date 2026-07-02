@@ -12,7 +12,7 @@ from unittest.mock import patch
 from . import llm
 from .admin import PostAdmin
 from .feeds import LEGACY_RSS_GUID_SLUGS
-from .models import Comment, Post, PostMedia, Subscriber
+from .models import Comment, Post, PostMedia, Subscriber, Tag
 from webmentions.models import Webmention
 
 
@@ -123,6 +123,16 @@ class PostTests(TestCase):
 
                 post.refresh_from_db()
                 self.assertEqual(post.published_at, published_at)
+
+    def test_posts_can_have_tags(self):
+        post = self.make_post()
+        django = Tag.objects.create(name="Django", slug="django")
+        python = Tag.objects.create(name="Python", slug="python")
+
+        post.tags.add(django, python)
+
+        self.assertCountEqual(post.tags.all(), [django, python])
+        self.assertCountEqual(django.posts.all(), [post])
 
 
 class CommentTests(TestCase):

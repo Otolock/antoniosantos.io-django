@@ -6,7 +6,7 @@ from django.utils.html import format_html
 from django.utils import timezone
 
 from .llm import DescriptionGenerationError, generate_post_description
-from .models import Comment, Post, PostMedia, Subscriber
+from .models import Comment, Post, PostMedia, Subscriber, Tag
 from webmentions.services import send_webmentions_for_post
 
 
@@ -17,13 +17,21 @@ class SubscriberAdmin(admin.ModelAdmin):
     readonly_fields = ["created_at"]
 
 
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    list_display = ["name", "slug"]
+    search_fields = ["name", "slug"]
+    prepopulated_fields = {"slug": ("name",)}
+
+
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
     change_form_template = "admin/blog/post/change_form.html"
     list_display = ["title", "status", "published_at"]
-    list_filter = ["status"]
-    search_fields = ["title", "body"]
+    list_filter = ["status", "tags"]
+    search_fields = ["title", "body", "tags__name"]
     prepopulated_fields = {"slug": ("title",)}
+    filter_horizontal = ["tags"]
     actions = ["publish_posts", "unpublish_posts", "generate_descriptions"]
 
     def render_change_form(self, request, context, *args, **kwargs):
