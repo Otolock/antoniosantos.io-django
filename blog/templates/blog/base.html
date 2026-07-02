@@ -6,7 +6,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Antonio's Blog{% endblock %}</title>
-    <link rel="micropub" href="{% url 'micropub:endpoint' %}">
     <link rel="indieauth-metadata" href="{% url 'indieauth:metadata' %}">
     <link rel="authorization_endpoint" href="{% url 'indieauth:auth' %}">
     <link rel="token_endpoint" href="{% url 'indieauth:token' %}">

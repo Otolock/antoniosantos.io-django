@@ -23,7 +23,6 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("webmention/", include("webmentions.urls")),
     path("", include("indieauth.urls")),
-    path("", include("micropub.urls")),
     path("", include("blog.urls")),
 ]
 
