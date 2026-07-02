@@ -8,7 +8,7 @@ from django.utils import timezone
 from ipaddress import ip_address
 
 from .forms import CommentForm, SubscribeForm
-from .models import Comment, Post, PostMedia, Subscriber
+from .models import Comment, Post, PostMedia, Subscriber, Tag
 from webmentions.models import Webmention
 
 
@@ -27,6 +27,12 @@ def home(request):
 def archive(request):
     posts = published_posts()
     return render(request, "blog/archive.html", {"posts": posts})
+
+
+def tag_detail(request, slug):
+    tag = get_object_or_404(Tag, slug=slug)
+    posts = published_posts().filter(tags=tag).distinct()
+    return render(request, "blog/tag_detail.html", {"tag": tag, "posts": posts})
 
 
 def now(request):

@@ -287,6 +287,61 @@ class PostViewTests(TestCase):
         self.assertContains(response, "Live post")
         self.assertContains(response, "<strong>world</strong>")
 
+    def test_post_detail_shows_linked_tag_pills(self):
+        post = self.make_post()
+        django = Tag.objects.create(name="Django", slug="django")
+        python = Tag.objects.create(name="Python", slug="python")
+        post.tags.add(django, python)
+
+        response = self.client.get(reverse("blog:post_detail", args=[post.slug]))
+
+        self.assertContains(response, 'class="post-tags"')
+        self.assertContains(
+            response,
+            f'<a class="tag-pill p-category" href="{reverse("blog:tag_detail", args=["django"])}">#Django</a>',
+            html=True,
+        )
+        self.assertContains(
+            response,
+            f'<a class="tag-pill p-category" href="{reverse("blog:tag_detail", args=["python"])}">#Python</a>',
+            html=True,
+        )
+
+    def test_tag_detail_lists_only_published_posts_for_tag(self):
+        tag = Tag.objects.create(name="Django", slug="django")
+        other_tag = Tag.objects.create(name="Python", slug="python")
+        tagged_post = self.make_post(title="Tagged post", slug="tagged-post")
+        older_tagged_post = self.make_post(
+            title="Older tagged post",
+            slug="older-tagged-post",
+            published_at=timezone.now() - timezone.timedelta(days=30),
+        )
+        draft_post = self.make_post(
+            title="Draft tagged post",
+            slug="draft-tagged-post",
+            status=Post.DRAFT,
+        )
+        scheduled_post = self.make_post(
+            title="Scheduled tagged post",
+            slug="scheduled-tagged-post",
+            published_at=timezone.now() + timezone.timedelta(days=1),
+        )
+        other_post = self.make_post(title="Other tag post", slug="other-tag-post")
+        tagged_post.tags.add(tag)
+        older_tagged_post.tags.add(tag)
+        draft_post.tags.add(tag)
+        scheduled_post.tags.add(tag)
+        other_post.tags.add(other_tag)
+
+        response = self.client.get(reverse("blog:tag_detail", args=[tag.slug]))
+
+        self.assertContains(response, "#Django")
+        self.assertContains(response, "Tagged post")
+        self.assertContains(response, "Older tagged post")
+        self.assertNotContains(response, "Draft tagged post")
+        self.assertNotContains(response, "Scheduled tagged post")
+        self.assertNotContains(response, "Other tag post")
+
     def test_post_detail_marks_post_as_microformats_entry(self):
         self.make_post()
 

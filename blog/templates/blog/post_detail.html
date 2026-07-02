@@ -27,6 +27,16 @@
     <div class="e-content prose prose-invert post-prose">
         {{ post.body_html|safe }}
     </div>
+
+    {% with tags=post.tags.all %}
+        {% if tags %}
+            <nav class="post-tags" aria-label="Post tags">
+                {% for tag in tags %}
+                    <a class="tag-pill p-category" href="{% url 'blog:tag_detail' tag.slug %}">#{{ tag.name }}</a>
+                {% endfor %}
+            </nav>
+        {% endif %}
+    {% endwith %}
 </article>
 
 {% if webmentions %}

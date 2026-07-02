@@ -1,0 +1,38 @@
+{% extends "blog/base.html" %}
+
+{% block title %}
+#{{ tag.name }}
+{% endblock %}
+
+{% block content %}
+<section class="intro-section">
+    <h2 class="page-heading">#{{ tag.name }}</h2>
+    <p class="text-sky-100">
+        Posts tagged #{{ tag.name }}.
+    </p>
+</section>
+
+<section class="h-feed post-list">
+    {% for post in posts %}
+        <article class="h-entry post-list-item with-divider">
+            <p class="post-date">
+                <time class="dt-published" datetime="{{ post.published_at|date:'c' }}">
+                    {{ post.published_at|date:"F j, Y" }}
+                </time>
+            </p>
+
+            <h2 class="post-list-title">
+                <a class="p-name u-url" href="{% url 'blog:post_detail' post.slug %}">
+                    {{ post.title }}
+                </a>
+            </h2>
+
+            {% if post.description %}
+                <p class="p-summary">{{ post.description }}</p>
+            {% endif %}
+        </article>
+    {% empty %}
+        <p>No published posts with this tag yet.</p>
+    {% endfor %}
+</section>
+{% endblock %}
