@@ -52,6 +52,8 @@ class Post(models.Model):
     slug = models.SlugField(unique=True)
     body = models.TextField()
     description = models.CharField(max_length=300, blank=True)
+    reply_to_url = models.URLField("in reply to URL", max_length=500, blank=True)
+    reply_to_title = models.CharField("in reply to title", max_length=200, blank=True)
     upvotes_count = models.PositiveIntegerField(default=0)
     tags = models.ManyToManyField(Tag, related_name="posts", blank=True)
 

@@ -26,6 +26,13 @@
                 <data class="p-summary" value="{{ post.description }}"></data>
             {% endif %}
         </p>
+        {% if post.reply_to_url %}
+            <p class="post-reply">
+                <span aria-hidden="true">↩</span>
+                in reply to
+                <a class="u-in-reply-to post-reply-link" href="{{ post.reply_to_url }}" rel="in-reply-to">{{ post.reply_to_title|default:post.reply_to_url }}</a>
+            </p>
+        {% endif %}
     </header>
 
     <div class="e-content prose prose-invert post-prose">

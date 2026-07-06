@@ -332,6 +332,39 @@ class SendWebmentionTests(TestCase):
         self.assertEqual(SentWebmention.objects.count(), 1)
 
     @override_settings(SITE_URL="https://example.com")
+    def test_queue_webmentions_for_post_includes_reply_to_url(self):
+        post = Post.objects.create(
+            title="Live post",
+            slug="live-post",
+            body="A reply with no body links.",
+            reply_to_url="https://target.example/article/",
+            status=Post.PUBLISHED,
+            published_at=timezone.now(),
+        )
+
+        records = queue_webmentions_for_post(post)
+
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0].target_url, "https://target.example/article/")
+
+    @override_settings(SITE_URL="https://example.com")
+    def test_queue_webmentions_for_post_deduplicates_reply_to_url_from_body(self):
+        post = Post.objects.create(
+            title="Live post",
+            slug="live-post",
+            body="[Elsewhere](https://target.example/article/)",
+            reply_to_url="https://target.example/article/",
+            status=Post.PUBLISHED,
+            published_at=timezone.now(),
+        )
+
+        records = queue_webmentions_for_post(post)
+
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0].target_url, "https://target.example/article/")
+        self.assertEqual(SentWebmention.objects.count(), 1)
+
+    @override_settings(SITE_URL="https://example.com")
     @patch("webmentions.services.send_webmention")
     def test_send_webmentions_for_post_skips_previously_sent_targets(self, send):
         post = Post.objects.create(

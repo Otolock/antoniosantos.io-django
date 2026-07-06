@@ -287,6 +287,27 @@ class PostViewTests(TestCase):
         self.assertContains(response, "Live post")
         self.assertContains(response, "<strong>world</strong>")
 
+    def test_post_detail_shows_reply_context_when_post_replies_to_url(self):
+        post = self.make_post(
+            reply_to_url="https://example.net/a-note/",
+            reply_to_title="Example note",
+        )
+
+        response = self.client.get(reverse("blog:post_detail", args=[post.slug]))
+
+        self.assertContains(response, "↩")
+        self.assertContains(response, "in reply to")
+        self.assertContains(
+            response,
+            (
+                '<a class="u-in-reply-to post-reply-link" '
+                'href="https://example.net/a-note/" '
+                'rel="in-reply-to">Example note</a>'
+            ),
+            html=True,
+        )
+        self.assertNotContains(response, "&gt; in reply to")
+
     def test_post_detail_shows_linked_tag_pills(self):
         post = self.make_post()
         django = Tag.objects.create(name="Django", slug="django")

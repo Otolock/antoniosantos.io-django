@@ -120,7 +120,7 @@ def queue_webmentions_for_post(post):
 
     source_url = post_source_url(post)
     records = []
-    for target_url in extract_webmention_targets(post.body_html, source_url):
+    for target_url in post_webmention_targets(post, source_url):
         record, created = SentWebmention.objects.get_or_create(
             source_url=source_url,
             target_url=target_url,
@@ -166,6 +166,33 @@ def post_source_url(post):
     return urljoin(settings.SITE_URL + "/", post.get_absolute_url().lstrip("/"))
 
 
+def post_webmention_targets(post, source_url=None):
+    source_url = source_url or post_source_url(post)
+    source_netloc = _normalized_netloc(urlparse(source_url))
+    targets = []
+    seen = set()
+
+    if post.reply_to_url:
+        _append_webmention_target(
+            targets,
+            seen,
+            urljoin(source_url, post.reply_to_url.strip()),
+            source_url,
+            source_netloc,
+        )
+
+    for target_url in extract_webmention_targets(post.body_html, source_url):
+        _append_webmention_target(
+            targets,
+            seen,
+            target_url,
+            source_url,
+            source_netloc,
+        )
+
+    return targets
+
+
 def extract_webmention_targets(html, source_url):
     source_netloc = _normalized_netloc(urlparse(source_url))
     soup = BeautifulSoup(html, "html.parser")
@@ -173,23 +200,32 @@ def extract_webmention_targets(html, source_url):
     seen = set()
 
     for link in soup.find_all("a", href=True):
-        target_url = urljoin(source_url, link["href"])
-        try:
-            validate_webmention_url(target_url)
-        except WebmentionValidationError:
-            continue
-
-        if target_url == source_url:
-            continue
-
-        if _normalized_netloc(urlparse(target_url)) == source_netloc:
-            continue
-
-        if target_url not in seen:
-            targets.append(target_url)
-            seen.add(target_url)
+        _append_webmention_target(
+            targets,
+            seen,
+            urljoin(source_url, link["href"]),
+            source_url,
+            source_netloc,
+        )
 
     return targets
+
+
+def _append_webmention_target(targets, seen, target_url, source_url, source_netloc):
+    try:
+        validate_webmention_url(target_url)
+    except WebmentionValidationError:
+        return
+
+    if target_url == source_url:
+        return
+
+    if _normalized_netloc(urlparse(target_url)) == source_netloc:
+        return
+
+    if target_url not in seen:
+        targets.append(target_url)
+        seen.add(target_url)
 
 
 def send_webmention(source_url, target_url):
