@@ -1087,6 +1087,38 @@ class PostAdminTests(TestCase):
             "![A bright sky](/media/blog/media/2026/06/hero.png)",
         )
 
+    def test_post_editor_shows_recent_media_newest_first(self):
+        post = Post.objects.create(
+            title="Draft post",
+            slug="draft-post",
+            body="Draft body",
+            status=Post.DRAFT,
+        )
+        older_media = PostMedia.objects.create(
+            title="Older photo",
+            slug="older-photo",
+            file="blog/media/2026/06/older.png",
+        )
+        newer_media = PostMedia.objects.create(
+            title="Newer photo",
+            slug="newer-photo",
+            file="blog/media/2026/06/newer.png",
+        )
+        PostMedia.objects.filter(pk=older_media.pk).update(
+            created_at=timezone.now() - timezone.timedelta(days=1)
+        )
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("admin:blog_post_change", args=[post.pk]))
+        media = list(response.context["available_media"])
+
+        self.assertEqual(media, [newer_media, older_media])
+
     def test_post_editor_shows_inline_description_generation_control(self):
         post = Post.objects.create(
             title="Draft post",
@@ -1105,6 +1137,29 @@ class PostAdminTests(TestCase):
 
         self.assertContains(response, 'name="_generate_description"')
         self.assertContains(response, 'aria-label="Generate description"')
+
+    def test_post_editor_shows_preview_and_publish_now_controls(self):
+        post = Post.objects.create(
+            title="Draft post",
+            slug="draft-post",
+            body="Draft body",
+            status=Post.DRAFT,
+        )
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("admin:blog_post_change", args=[post.pk]))
+
+        self.assertContains(response, 'name="_preview"')
+        self.assertContains(
+            response,
+            f'formaction="{reverse("admin:blog_post_preview", args=[post.pk])}"',
+        )
+        self.assertContains(response, 'name="_publish_now"')
 
     def test_post_admin_orders_drafts_then_published_newest_first(self):
         older_published = Post.objects.create(
@@ -1226,6 +1281,102 @@ class PostAdminTests(TestCase):
         self.assertEqual(post.status, Post.PUBLISHED)
         self.assertGreaterEqual(post.published_at, before_save)
         self.assertLessEqual(post.published_at, after_save)
+
+    @patch("blog.admin.send_webmentions_for_post_async")
+    def test_admin_publish_now_saves_as_published_with_current_date(
+        self,
+        send_webmentions,
+    ):
+        post = Post.objects.create(
+            title="Draft post",
+            slug="draft-post",
+            body="Draft body",
+            status=Post.DRAFT,
+            published_at=None,
+        )
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        before_save = timezone.now()
+        response = self.client.post(
+            reverse("admin:blog_post_change", args=[post.pk]),
+            {
+                "title": "Draft post",
+                "slug": "draft-post",
+                "body": "Updated body",
+                "description": "",
+                "upvotes_count": "0",
+                "status": Post.DRAFT,
+                "published_at_0": "",
+                "published_at_1": "",
+                "_publish_now": "Publish Now",
+            },
+        )
+        after_save = timezone.now()
+
+        self.assertRedirects(
+            response,
+            reverse("admin:blog_post_change", args=[post.pk]),
+        )
+        post.refresh_from_db()
+        self.assertEqual(post.body, "Updated body")
+        self.assertEqual(post.status, Post.PUBLISHED)
+        self.assertGreaterEqual(post.published_at, before_save)
+        self.assertLessEqual(post.published_at, after_save)
+        send_webmentions.assert_called_once_with(post)
+
+    @patch("blog.admin.send_webmentions_for_post_async")
+    def test_admin_preview_renders_form_values_without_saving_or_webmentions(
+        self,
+        send_webmentions,
+    ):
+        post = Post.objects.create(
+            title="Draft post",
+            slug="draft-post",
+            body="Original body",
+            status=Post.DRAFT,
+            published_at=None,
+        )
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("admin:blog_post_preview", args=[post.pk]),
+            {
+                "title": "Preview title",
+                "slug": "preview-title",
+                "body": "Updated **preview** body",
+                "description": "",
+                "upvotes_count": "0",
+                "status": Post.PUBLISHED,
+                "published_at_0": "",
+                "published_at_1": "",
+                "_preview": "Preview",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Preview title")
+        self.assertContains(response, "<strong>preview</strong>")
+        self.assertContains(response, "Preview only.")
+        self.assertContains(response, 'content="noindex,nofollow"')
+        self.assertNotContains(response, 'rel="webmention"')
+        self.assertNotContains(response, "analytics.antoniosantos.io")
+        self.assertNotContains(response, 'id="comment-actions"')
+        post.refresh_from_db()
+        self.assertEqual(post.title, "Draft post")
+        self.assertEqual(post.body, "Original body")
+        self.assertEqual(post.status, Post.DRAFT)
+        self.assertIsNone(post.published_at)
+        send_webmentions.assert_not_called()
 
     @patch("blog.admin.send_webmentions_for_post_async")
     def test_admin_save_schedules_webmentions_for_published_post(

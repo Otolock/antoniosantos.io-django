@@ -9,6 +9,10 @@
 {% endblock %}
 
 {% block content %}
+{% if is_preview %}
+    <p class="message">Preview only. This post has not been published from this view.</p>
+{% endif %}
+
 <article class="h-entry post-entry">
     <header class="post-header">
         <h1 class="p-name post-title">{{ post.title }}</h1>
@@ -28,18 +32,16 @@
         {{ post.body_html|safe }}
     </div>
 
-    {% with tags=post.tags.all %}
-        {% if tags %}
+    {% if post_tags %}
             <nav class="post-tags" aria-label="Post tags">
-                {% for tag in tags %}
+                {% for tag in post_tags %}
                     <a class="tag-pill p-category" href="{% url 'blog:tag_detail' tag.slug %}">#{{ tag.name }}</a>
                 {% endfor %}
             </nav>
-        {% endif %}
-    {% endwith %}
+    {% endif %}
 </article>
 
-{% if webmentions %}
+{% if not is_preview and webmentions %}
     <section class="post-webmentions prose prose-invert" aria-labelledby="webmentions-heading">
         <h2 id="webmentions-heading">Webmentions</h2>
         <ul>
@@ -54,6 +56,7 @@
     </section>
 {% endif %}
 
+{% if not is_preview %}
 <nav class="comment-actions" id="comment-actions" aria-label="Post feedback">
     <form class="upvote-form" action="{{ post.get_absolute_url }}#comment-actions" method="post" data-upvote-form>
         {% csrf_token %}
@@ -182,4 +185,5 @@
         <p class="comments-empty">No comments yet.</p>
     {% endif %}
 </section>
+{% endif %}
 {% endblock %}

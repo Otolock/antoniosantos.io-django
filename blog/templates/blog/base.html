@@ -9,9 +9,15 @@
     <link rel="indieauth-metadata" href="{% url 'indieauth:metadata' %}">
     <link rel="authorization_endpoint" href="{% url 'indieauth:auth' %}">
     <link rel="token_endpoint" href="{% url 'indieauth:token' %}">
-    <link rel="webmention" href="{% url 'webmentions:receive' %}">
+    {% if is_preview %}
+        <meta name="robots" content="noindex,nofollow">
+    {% else %}
+        <link rel="webmention" href="{% url 'webmentions:receive' %}">
+    {% endif %}
     <link rel="stylesheet" href="{% static 'blog/style.css' %}">
-    <script defer src="https://analytics.antoniosantos.io/script.js" data-website-id="c267309b-63c5-42d9-ac9e-423f4b7829ad"></script>
+    {% if not is_preview %}
+        <script defer src="https://analytics.antoniosantos.io/script.js" data-website-id="c267309b-63c5-42d9-ac9e-423f4b7829ad"></script>
+    {% endif %}
     {% block head %}
     {% endblock %}
 </head>

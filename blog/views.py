@@ -121,6 +121,7 @@ def post_detail(request, slug):
             "comments": comments,
             "comment_form": comment_form,
             "webmentions": webmentions,
+            "post_tags": post.tags.all(),
         },
     )
 

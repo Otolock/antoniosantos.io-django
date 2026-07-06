@@ -30,6 +30,24 @@
             white-space: nowrap;
         }
 
+        .post-extra-submit-row input[name="_publish_now"] {
+            background: var(--button-bg);
+            border-color: var(--button-bg);
+            color: var(--button-fg);
+            font-weight: 700;
+        }
+
+        .post-media-panel summary {
+            cursor: pointer;
+            font-weight: 700;
+            padding: 0.75rem 0;
+        }
+
+        .post-media-table-wrap {
+            max-height: 18rem;
+            overflow: auto;
+        }
+
         @media (max-width: 767px) {
             .description-field-with-action {
                 align-items: stretch;
@@ -76,36 +94,56 @@
     </script>
 
     <fieldset class="module aligned">
-        <h2>Media</h2>
-        <div class="form-row">
-            <div>
-                <a class="button" href="{% url 'admin:blog_postmedia_add' %}" target="_blank" rel="noopener">Upload media</a>
-            </div>
-        </div>
-
-        {% if available_media %}
+        <details class="post-media-panel">
+            <summary>Media</summary>
             <div class="form-row">
-                <table>
-                    <thead>
-                        <tr>
-                            <th scope="col">Title</th>
-                            <th scope="col">Markdown</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for media in available_media %}
-                            <tr>
-                                <th scope="row">
-                                    <a href="{% url 'admin:blog_postmedia_change' media.pk %}">{{ media.title }}</a>
-                                </th>
-                                <td>
-                                    <input type="text" value="{{ media.markdown_snippet }}" readonly style="width: 100%;">
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div>
+                    <a class="button" href="{% url 'admin:blog_postmedia_add' %}" target="_blank" rel="noopener">Upload media</a>
+                </div>
             </div>
-        {% endif %}
+
+            {% if available_media %}
+                <div class="form-row">
+                    <div class="post-media-table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Title</th>
+                                    <th scope="col">Markdown</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for media in available_media %}
+                                    <tr>
+                                        <th scope="row">
+                                            <a href="{% url 'admin:blog_postmedia_change' media.pk %}">{{ media.title }}</a>
+                                        </th>
+                                        <td>
+                                            <input type="text" value="{{ media.markdown_snippet }}" readonly style="width: 100%;">
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endif %}
+        </details>
     </fieldset>
+{% endblock %}
+
+{% block submit_buttons_bottom %}
+    {{ block.super }}
+
+    <div class="submit-row post-extra-submit-row">
+        <input
+            type="submit"
+            name="_preview"
+            value="Preview"
+            formmethod="post"
+            formaction="{{ post_preview_url }}"
+            formtarget="_blank"
+        >
+        <input type="submit" name="_publish_now" value="Publish Now">
+    </div>
 {% endblock %}

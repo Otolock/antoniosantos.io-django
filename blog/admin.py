@@ -1,11 +1,14 @@
 from django.contrib import admin
 from django.contrib import messages
+from django.core.exceptions import PermissionDenied
 from django.db.models import Case, F, IntegerField, Value, When
 from django.http import HttpResponseRedirect
+from django.shortcuts import render
 from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils import timezone
 
+from .forms import CommentForm
 from .llm import DescriptionGenerationError, generate_post_description
 from .models import Comment, Post, PostMedia, Subscriber, Tag
 from webmentions.services import send_webmentions_for_post_async
@@ -48,12 +51,32 @@ class PostAdmin(admin.ModelAdmin):
         ]
 
     def render_change_form(self, request, context, *args, **kwargs):
-        context["available_media"] = PostMedia.objects.all()[:25]
+        context["available_media"] = PostMedia.objects.order_by("-created_at", "-pk")[
+            :25
+        ]
+        original = context.get("original")
+        if original:
+            context["post_preview_url"] = reverse(
+                "admin:blog_post_preview",
+                args=[original.pk],
+            )
+        else:
+            context["post_preview_url"] = reverse("admin:blog_post_preview")
         return super().render_change_form(request, context, *args, **kwargs)
 
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
+            path(
+                "preview/",
+                self.admin_site.admin_view(self.preview_view),
+                name="blog_post_preview",
+            ),
+            path(
+                "<path:object_id>/preview/",
+                self.admin_site.admin_view(self.preview_view),
+                name="blog_post_preview",
+            ),
             path(
                 "<path:object_id>/generate-description/",
                 self.admin_site.admin_view(self.generate_description_view),
@@ -63,9 +86,80 @@ class PostAdmin(admin.ModelAdmin):
         return custom_urls + urls
 
     def save_model(self, request, obj, form, change):
+        if request and "_publish_now" in request.POST:
+            obj.status = Post.PUBLISHED
+            obj.published_at = timezone.now()
+
         super().save_model(request, obj, form, change)
         if obj.is_published:
             send_webmentions_for_post_async(obj)
+
+    def preview_view(self, request, object_id=None):
+        obj = self.get_object(request, object_id) if object_id else None
+        if object_id and obj is None:
+            self.message_user(request, "Post not found.", messages.ERROR)
+            return HttpResponseRedirect(reverse("admin:blog_post_changelist"))
+
+        if request.method == "POST":
+            if obj is None and not self.has_add_permission(request):
+                raise PermissionDenied
+            if obj is not None and not self.has_change_permission(request, obj):
+                raise PermissionDenied
+
+            form_class = self.get_form(request, obj, change=obj is not None)
+            form = form_class(request.POST, request.FILES, instance=obj)
+            if not form.is_valid():
+                self.message_user(
+                    request,
+                    "Fix the highlighted errors before previewing.",
+                    messages.ERROR,
+                )
+                if obj is None:
+                    return HttpResponseRedirect(reverse("admin:blog_post_add"))
+                return HttpResponseRedirect(
+                    reverse("admin:blog_post_change", args=[obj.pk])
+                )
+
+            post = form.save(commit=False)
+            post_tags = form.cleaned_data.get("tags", [])
+        else:
+            if obj is None:
+                self.message_user(
+                    request,
+                    "Save this post, or use the Preview button on the form.",
+                    messages.WARNING,
+                )
+                return HttpResponseRedirect(reverse("admin:blog_post_add"))
+            if not self.has_view_or_change_permission(request, obj):
+                raise PermissionDenied
+
+            post = obj
+            post_tags = obj.tags.all()
+
+        return self._render_preview(request, post, post_tags)
+
+    def _render_preview(self, request, post, post_tags):
+        if post.published_at is None:
+            post.published_at = timezone.now()
+
+        canonical_path = (
+            post.get_absolute_url()
+            if post.slug
+            else reverse("admin:blog_post_preview")
+        )
+        return render(
+            request,
+            "blog/post_detail.html",
+            {
+                "post": post,
+                "canonical_url": request.build_absolute_uri(canonical_path),
+                "comments": [],
+                "comment_form": CommentForm(),
+                "webmentions": [],
+                "post_tags": post_tags,
+                "is_preview": True,
+            },
+        )
 
     def generate_description_view(self, request, object_id):
         post = self.get_object(request, object_id)
@@ -95,11 +189,19 @@ class PostAdmin(admin.ModelAdmin):
             self._generate_description(request, obj)
             return HttpResponseRedirect(reverse("admin:blog_post_change", args=[obj.pk]))
 
+        if "_publish_now" in request.POST:
+            self.message_user(request, "Published this post now.", messages.SUCCESS)
+            return HttpResponseRedirect(reverse("admin:blog_post_change", args=[obj.pk]))
+
         return super().response_add(request, obj, post_url_continue)
 
     def response_change(self, request, obj):
         if "_generate_description" in request.POST:
             self._generate_description(request, obj)
+            return HttpResponseRedirect(reverse("admin:blog_post_change", args=[obj.pk]))
+
+        if "_publish_now" in request.POST:
+            self.message_user(request, "Published this post now.", messages.SUCCESS)
             return HttpResponseRedirect(reverse("admin:blog_post_change", args=[obj.pk]))
 
         return super().response_change(request, obj)
