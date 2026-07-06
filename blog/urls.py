@@ -1,11 +1,16 @@
 from django.urls import path
 from django.contrib.sitemaps.views import sitemap
+from django.contrib import admin
 
 from .feeds import LatestPostsFeed
 from . import views
 from .sitemaps import PostSitemap, StaticViewSitemap
 
 app_name = "blog"
+
+admin.site.site_header = 'Antonio\'s Blog'
+admin.site.index_title = 'Blog Administration'
+admin.site.site_title = 'Antonio\'s Blog'
 
 sitemaps = {
     "pages": StaticViewSitemap,
