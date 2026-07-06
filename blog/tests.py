@@ -1227,8 +1227,11 @@ class PostAdminTests(TestCase):
         self.assertGreaterEqual(post.published_at, before_save)
         self.assertLessEqual(post.published_at, after_save)
 
-    @patch("blog.admin.send_webmentions_for_post")
-    def test_admin_save_sends_webmentions_for_published_post(self, send_webmentions):
+    @patch("blog.admin.send_webmentions_for_post_async")
+    def test_admin_save_schedules_webmentions_for_published_post(
+        self,
+        send_webmentions,
+    ):
         post = Post(
             title="Live post",
             slug="live-post",
@@ -1242,8 +1245,11 @@ class PostAdminTests(TestCase):
 
         send_webmentions.assert_called_once_with(post)
 
-    @patch("blog.admin.send_webmentions_for_post")
-    def test_admin_save_does_not_send_webmentions_for_draft(self, send_webmentions):
+    @patch("blog.admin.send_webmentions_for_post_async")
+    def test_admin_save_does_not_schedule_webmentions_for_draft(
+        self,
+        send_webmentions,
+    ):
         post = Post(
             title="Draft post",
             slug="draft-post",
@@ -1273,8 +1279,8 @@ class PostAdminTests(TestCase):
         self.assertIsNotNone(post.published_at)
         self.assertTrue(post.is_published)
 
-    @patch("blog.admin.send_webmentions_for_post")
-    def test_publish_posts_action_sends_webmentions(self, send_webmentions):
+    @patch("blog.admin.send_webmentions_for_post_async")
+    def test_publish_posts_action_schedules_webmentions(self, send_webmentions):
         post = Post.objects.create(
             title="Draft post",
             slug="draft-post",

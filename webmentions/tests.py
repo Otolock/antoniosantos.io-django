@@ -11,7 +11,10 @@ from .services import (
     WebmentionValidationError,
     discover_webmention_endpoint,
     extract_webmention_targets,
+    queue_webmentions_for_post,
     send_webmention,
+    send_webmentions_for_post,
+    send_webmentions_for_post_async,
     verify_source_links_to_target,
 )
 
@@ -309,6 +312,64 @@ class SendWebmentionTests(TestCase):
         targets = extract_webmention_targets(html, self.source)
 
         self.assertEqual(targets, ["https://target.example/article/"])
+
+    @override_settings(SITE_URL="https://example.com")
+    def test_queue_webmentions_for_post_only_returns_new_targets(self):
+        post = Post.objects.create(
+            title="Live post",
+            slug="live-post",
+            body="[Elsewhere](https://target.example/article/)",
+            status=Post.PUBLISHED,
+            published_at=timezone.now(),
+        )
+
+        records = queue_webmentions_for_post(post)
+        repeated_records = queue_webmentions_for_post(post)
+
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0].target_url, "https://target.example/article/")
+        self.assertEqual(repeated_records, [])
+        self.assertEqual(SentWebmention.objects.count(), 1)
+
+    @override_settings(SITE_URL="https://example.com")
+    @patch("webmentions.services.send_webmention")
+    def test_send_webmentions_for_post_skips_previously_sent_targets(self, send):
+        post = Post.objects.create(
+            title="Live post",
+            slug="live-post",
+            body="[Elsewhere](https://target.example/article/)",
+            status=Post.PUBLISHED,
+            published_at=timezone.now(),
+        )
+        SentWebmention.objects.create(
+            source_url="https://example.com/live-post/",
+            target_url="https://target.example/article/",
+            status=SentWebmention.SENT,
+        )
+
+        results = send_webmentions_for_post(post)
+
+        self.assertEqual(results, [])
+        send.assert_not_called()
+
+    @override_settings(SITE_URL="https://example.com")
+    @patch("webmentions.services.threading.Thread")
+    def test_send_webmentions_for_post_async_starts_thread_on_commit(self, thread):
+        post = Post.objects.create(
+            title="Live post",
+            slug="live-post",
+            body="[Elsewhere](https://target.example/article/)",
+            status=Post.PUBLISHED,
+            published_at=timezone.now(),
+        )
+
+        with self.captureOnCommitCallbacks(execute=True):
+            send_webmentions_for_post_async(post)
+
+        thread.assert_called_once()
+        self.assertEqual(thread.call_args.kwargs["args"], (post.pk,))
+        self.assertTrue(thread.call_args.kwargs["daemon"])
+        thread.return_value.start.assert_called_once()
 
     @patch("webmentions.services._resolve_host_ips", return_value=public_ip)
     @patch("webmentions.services.requests.Session")

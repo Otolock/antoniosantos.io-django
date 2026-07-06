@@ -1,10 +1,12 @@
 import ipaddress
 import json
 import socket
+import threading
 from dataclasses import dataclass
 from urllib.parse import urljoin, urlparse
 
 from django.conf import settings
+from django.db import close_old_connections, transaction
 from django.db.models import F
 from django.utils import timezone
 import requests
@@ -108,14 +110,56 @@ def source_links_to_target(source_url, target_url):
 
 
 def send_webmentions_for_post(post):
+    records = queue_webmentions_for_post(post)
+    return [send_webmention(record.source_url, record.target_url) for record in records]
+
+
+def queue_webmentions_for_post(post):
     if not post.is_published:
         return []
 
     source_url = post_source_url(post)
-    results = []
+    records = []
     for target_url in extract_webmention_targets(post.body_html, source_url):
-        results.append(send_webmention(source_url, target_url))
-    return results
+        record, created = SentWebmention.objects.get_or_create(
+            source_url=source_url,
+            target_url=target_url,
+        )
+        if created:
+            records.append(record)
+    return records
+
+
+def send_webmentions_for_post_async(post):
+    if not post.pk or not post.is_published:
+        return
+
+    post_id = post.pk
+
+    def start_sender():
+        thread = threading.Thread(
+            target=_send_webmentions_for_post_id,
+            args=(post_id,),
+            daemon=True,
+        )
+        thread.start()
+
+    transaction.on_commit(start_sender)
+
+
+def _send_webmentions_for_post_id(post_id):
+    from blog.models import Post
+
+    close_old_connections()
+    try:
+        try:
+            post = Post.objects.get(pk=post_id)
+        except Post.DoesNotExist:
+            return
+
+        send_webmentions_for_post(post)
+    finally:
+        close_old_connections()
 
 
 def post_source_url(post):
