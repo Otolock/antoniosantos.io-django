@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db.models import Case, F, IntegerField, Value, When
 from django.http import HttpResponseRedirect
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils import timezone
@@ -11,7 +11,141 @@ from django.utils import timezone
 from .forms import CommentForm
 from .llm import DescriptionGenerationError, generate_post_description
 from .models import Comment, Post, PostMedia, Subscriber, Tag
+from webmentions.models import Webmention
 from webmentions.services import send_webmentions_for_post_async
+
+
+def pending_moderation_count():
+    return (
+        Comment.objects.filter(status=Comment.PENDING).count()
+        + Webmention.objects.filter(status=Webmention.PENDING).count()
+    )
+
+
+def moderation_queue_view(request):
+    if request.method == "POST":
+        _moderate_queue_item(request)
+        return HttpResponseRedirect(reverse("admin:moderation_queue"))
+
+    pending_comments = Comment.objects.filter(
+        status=Comment.PENDING,
+    ).select_related("post")
+    pending_webmentions = Webmention.objects.filter(status=Webmention.PENDING)
+    queue_items = [
+        _comment_queue_item(comment)
+        for comment in pending_comments.order_by("created_at", "pk")
+    ] + [
+        _webmention_queue_item(webmention)
+        for webmention in pending_webmentions.order_by("created_at", "pk")
+    ]
+    queue_items.sort(key=lambda item: (item["created_at"], item["type"], item["id"]))
+
+    context = {
+        **admin.site.each_context(request),
+        "title": "Moderation queue",
+        "subtitle": "Comments and webmentions pending approval",
+        "queue_items": queue_items,
+        "pending_comment_count": pending_comments.count(),
+        "pending_webmention_count": pending_webmentions.count(),
+    }
+    return render(request, "admin/moderation_queue.html", context)
+
+
+def _moderate_queue_item(request):
+    item_type = request.POST.get("item_type")
+    item_id = request.POST.get("item_id")
+    action = request.POST.get("action")
+
+    if action not in {"approve", "reject"}:
+        raise PermissionDenied
+
+    if item_type == "comment":
+        if not request.user.has_perm("blog.change_comment"):
+            raise PermissionDenied
+        comment = get_object_or_404(Comment, pk=item_id, status=Comment.PENDING)
+        comment.status = Comment.APPROVED if action == "approve" else Comment.REJECTED
+        comment.save(update_fields=["status"])
+        action_label = "Approved" if action == "approve" else "Rejected"
+        messages.success(request, f"{action_label} comment from {comment.author_name}.")
+        return
+
+    if item_type == "webmention":
+        if not request.user.has_perm("webmentions.change_webmention"):
+            raise PermissionDenied
+        webmention = get_object_or_404(Webmention, pk=item_id, status=Webmention.PENDING)
+        webmention.status = (
+            Webmention.APPROVED if action == "approve" else Webmention.REJECTED
+        )
+        webmention.save(update_fields=["status"])
+        action_label = "Approved" if action == "approve" else "Rejected"
+        messages.success(
+            request,
+            f"{action_label} webmention from {webmention.source_url}.",
+        )
+        return
+
+    raise PermissionDenied
+
+
+def _comment_queue_item(comment):
+    return {
+        "id": comment.pk,
+        "type": "comment",
+        "label": "Comment",
+        "created_at": comment.created_at,
+        "author": comment.author_name,
+        "title": comment.post.title,
+        "body": comment.body,
+        "source_url": "",
+        "target_url": comment.post.get_absolute_url(),
+        "change_url": reverse("admin:blog_comment_change", args=[comment.pk]),
+    }
+
+
+def _webmention_queue_item(webmention):
+    return {
+        "id": webmention.pk,
+        "type": "webmention",
+        "label": "Webmention",
+        "created_at": webmention.created_at,
+        "author": webmention.author_name or webmention.source_url,
+        "title": webmention.title,
+        "body": webmention.content,
+        "source_url": webmention.source_url,
+        "target_url": webmention.target_url,
+        "change_url": reverse(
+            "admin:webmentions_webmention_change",
+            args=[webmention.pk],
+        ),
+    }
+
+
+_original_admin_get_urls = admin.site.get_urls
+
+
+def _admin_get_urls():
+    custom_urls = [
+        path(
+            "moderation-queue/",
+            admin.site.admin_view(moderation_queue_view),
+            name="moderation_queue",
+        ),
+    ]
+    return custom_urls + _original_admin_get_urls()
+
+
+_original_admin_index = admin.site.index
+
+
+def _admin_index(request, extra_context=None):
+    extra_context = extra_context or {}
+    extra_context["pending_moderation_count"] = pending_moderation_count()
+    return _original_admin_index(request, extra_context)
+
+
+admin.site.get_urls = _admin_get_urls
+admin.site.index = _admin_index
+admin.site.index_template = "admin/moderation_index.html"
 
 
 @admin.register(Subscriber)

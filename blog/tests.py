@@ -1642,6 +1642,147 @@ class PostAdminTests(TestCase):
         self.assertEqual(post.description, "Generated description")
         mock_generate.assert_called_once_with(post)
 
+    def test_admin_index_links_to_moderation_queue_with_pending_count(self):
+        post = Post.objects.create(
+            title="Live post",
+            slug="live-post",
+            body="Live body",
+            status=Post.PUBLISHED,
+            published_at=timezone.now(),
+        )
+        Comment.objects.create(
+            post=post,
+            author_name="Reader",
+            author_email="reader@example.com",
+            body="Please approve this.",
+        )
+        Webmention.objects.create(
+            source_url="https://source.example/reply/",
+            target_url="https://example.com/live-post/",
+        )
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("admin:index"))
+
+        self.assertContains(response, "Approval queue")
+        self.assertContains(response, reverse("admin:moderation_queue"))
+        self.assertContains(response, "2 pending")
+
+    def test_moderation_queue_lists_pending_comments_and_webmentions(self):
+        post = Post.objects.create(
+            title="Live post",
+            slug="live-post",
+            body="Live body",
+            status=Post.PUBLISHED,
+            published_at=timezone.now(),
+        )
+        Comment.objects.create(
+            post=post,
+            author_name="Reader",
+            author_email="reader@example.com",
+            body="Pending comment",
+        )
+        Comment.objects.create(
+            post=post,
+            author_name="Approved reader",
+            author_email="approved@example.com",
+            body="Approved comment",
+            status=Comment.APPROVED,
+        )
+        Webmention.objects.create(
+            source_url="https://source.example/reply/",
+            target_url="https://example.com/live-post/",
+            author_name="Mentioner",
+            content="Pending mention",
+        )
+        Webmention.objects.create(
+            source_url="https://source.example/approved/",
+            target_url="https://example.com/live-post/",
+            content="Approved mention",
+            status=Webmention.APPROVED,
+        )
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("admin:moderation_queue"))
+
+        self.assertContains(response, "Pending comment")
+        self.assertContains(response, "Pending mention")
+        self.assertContains(response, "1 comment and")
+        self.assertContains(response, "1 webmention")
+        self.assertNotContains(response, "Approved comment")
+        self.assertNotContains(response, "Approved mention")
+
+    def test_moderation_queue_can_approve_pending_comment(self):
+        post = Post.objects.create(
+            title="Live post",
+            slug="live-post",
+            body="Live body",
+            status=Post.PUBLISHED,
+            published_at=timezone.now(),
+        )
+        comment = Comment.objects.create(
+            post=post,
+            author_name="Reader",
+            author_email="reader@example.com",
+            body="Please approve this.",
+        )
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("admin:moderation_queue"),
+            {
+                "item_type": "comment",
+                "item_id": str(comment.pk),
+                "action": "approve",
+            },
+        )
+
+        self.assertRedirects(response, reverse("admin:moderation_queue"))
+        comment.refresh_from_db()
+        self.assertEqual(comment.status, Comment.APPROVED)
+        self.assertIsNotNone(comment.approved_at)
+
+    def test_moderation_queue_can_reject_pending_webmention(self):
+        webmention = Webmention.objects.create(
+            source_url="https://source.example/reply/",
+            target_url="https://example.com/live-post/",
+            content="Please reject this.",
+        )
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("admin:moderation_queue"),
+            {
+                "item_type": "webmention",
+                "item_id": str(webmention.pk),
+                "action": "reject",
+            },
+        )
+
+        self.assertRedirects(response, reverse("admin:moderation_queue"))
+        webmention.refresh_from_db()
+        self.assertEqual(webmention.status, Webmention.REJECTED)
+
 
 class DescriptionGenerationTests(TestCase):
     def make_post(self, **kwargs):

@@ -1,0 +1,85 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+  &rsaquo; Moderation queue
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  <div class="module">
+    <h2>Pending approval</h2>
+    <p class="help">
+      {{ pending_comment_count }} comment{{ pending_comment_count|pluralize }} and
+      {{ pending_webmention_count }} webmention{{ pending_webmention_count|pluralize }}
+      waiting for review.
+    </p>
+  </div>
+
+  {% if queue_items %}
+    {% for item in queue_items %}
+      <div class="module aligned">
+        <h2>{{ item.label }}{% if item.author %} from {{ item.author }}{% endif %}</h2>
+        <div class="form-row">
+          <div>
+            <label>Received:</label>
+            <div class="readonly">{{ item.created_at }}</div>
+          </div>
+        </div>
+        {% if item.title %}
+          <div class="form-row">
+            <div>
+              <label>Target:</label>
+              <div class="readonly">{{ item.title }}</div>
+            </div>
+          </div>
+        {% endif %}
+        {% if item.source_url %}
+          <div class="form-row">
+            <div>
+              <label>Source:</label>
+              <div class="readonly"><a href="{{ item.source_url }}">{{ item.source_url }}</a></div>
+            </div>
+          </div>
+        {% endif %}
+        <div class="form-row">
+          <div>
+            <label>Destination:</label>
+            <div class="readonly">{{ item.target_url }}</div>
+          </div>
+        </div>
+        {% if item.body %}
+          <div class="form-row">
+            <div>
+              <label>Content:</label>
+              <div class="readonly">{{ item.body|linebreaksbr }}</div>
+            </div>
+          </div>
+        {% endif %}
+        <div class="submit-row">
+          <form method="post" style="display: inline;">
+            {% csrf_token %}
+            <input type="hidden" name="item_type" value="{{ item.type }}">
+            <input type="hidden" name="item_id" value="{{ item.id }}">
+            <button type="submit" class="default" name="action" value="approve">Approve</button>
+          </form>
+          <form method="post" style="display: inline;">
+            {% csrf_token %}
+            <input type="hidden" name="item_type" value="{{ item.type }}">
+            <input type="hidden" name="item_id" value="{{ item.id }}">
+            <button type="submit" name="action" value="reject">Reject</button>
+          </form>
+          <a class="button" href="{{ item.change_url }}">Edit</a>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="module">
+      <p>No comments or webmentions are pending approval.</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
