@@ -374,7 +374,7 @@ class PostViewTests(TestCase):
         self.assertContains(response, 'class="p-name post-title"')
         self.assertContains(response, 'class="p-author h-card"')
         self.assertNotContains(response, "Published by")
-        self.assertNotContains(response, 'class="u-url text-cyan-200 hover:text-white"')
+        self.assertNotContains(response, 'class="u-url text-blue-200 hover:text-white"')
         self.assertContains(response, 'class="u-url" value="http://testserver/live-post/"')
         self.assertContains(response, 'class="dt-published"')
         self.assertContains(response, 'class="p-summary" value="A live post"')

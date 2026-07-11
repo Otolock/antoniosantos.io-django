@@ -20,7 +20,7 @@
   }
 
   :where(a, button, input):focus-visible {
-    outline: 2px solid var(--color-emerald-200);
+    outline: 2px solid var(--color-blue-400);
     outline-offset: 3px;
   }
 }
@@ -56,6 +56,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: calc(var(--spacing) * 2);
+    font-weight: var(--font-weight-bold);
   }
 
   .site-nav a,
@@ -63,7 +64,7 @@
   .text-link,
   .post-list-title a,
   .post-reply a {
-    color: var(--color-emerald-200);
+    color: var(--color-blue-400);
     transition: color 150ms ease, background-color 150ms ease;
   }
 
@@ -97,7 +98,7 @@
   }
 
   .message {
-    border-left: 4px solid var(--color-emerald-200);
+    border-left: 4px solid var(--color-blue-400);
     background: var(--color-zinc-950);
     color: var(--color-zinc-50);
     font-size: var(--text-sm);
@@ -162,7 +163,7 @@
   }
 
   .post-reply {
-    border-left: 3px solid var(--color-emerald-200);
+    border-left: 3px solid var(--color-blue-400);
     border-radius: 0.375rem;
     background: var(--color-zinc-950);
     color: var(--color-zinc-200);
@@ -174,7 +175,7 @@
   }
 
   .post-reply-link {
-    color: var(--color-emerald-200);
+    color: var(--color-blue-400);
     font-family: var(--font-mono);
     font-weight: var(--font-weight-bold);
     text-decoration: underline;
@@ -220,7 +221,7 @@
     align-items: center;
     border: 1px solid var(--color-zinc-700);
     border-radius: 999px;
-    color: var(--color-emerald-200);
+    color: var(--color-blue-400);
     font-size: var(--text-sm);
     line-height: 1;
     padding: calc(var(--spacing) * 1.5) calc(var(--spacing) * 3);
@@ -228,7 +229,7 @@
   }
 
   .tag-pill:hover {
-    border-color: var(--color-emerald-200);
+    border-color: var(--color-blue-400);
     color: var(--color-white);
   }
 
@@ -281,7 +282,7 @@
 
   .comment-actions a,
   .upvote-button {
-    color: var(--color-emerald-200);
+    color: var(--color-blue-400);
     transition: color 150ms ease;
   }
 
@@ -291,7 +292,7 @@
   }
 
   .upvote-button:disabled {
-    color: var(--color-emerald-50);
+    color: var(--color-blue-50);
     cursor: default;
   }
 
@@ -404,7 +405,7 @@
 
   .form-field input:focus,
   .form-field textarea:focus {
-    border-color: var(--color-emerald-200);
+    border-color: var(--color-blue-400);
     outline: none;
   }
 
@@ -425,7 +426,7 @@
   .comment-form button {
     min-height: 2.75rem;
     border-radius: 0.375rem;
-    background: var(--color-emerald-200);
+    background: var(--color-blue-400);
     color: var(--color-zinc-950);
     font-weight: var(--font-weight-bold);
     padding: calc(var(--spacing) * 2) calc(var(--spacing) * 4);
@@ -516,7 +517,7 @@
   }
 
   .indieauth-client a {
-    color: var(--color-emerald-200);
+    color: var(--color-blue-400);
     overflow-wrap: anywhere;
     text-decoration: underline;
     text-underline-offset: 0.15em;
@@ -561,7 +562,7 @@
     min-height: 2.75rem;
     border: 1px solid var(--color-zinc-700);
     border-radius: 0.375rem;
-    color: var(--color-emerald-200);
+    color: var(--color-blue-400);
     cursor: pointer;
     font-weight: var(--font-weight-bold);
     padding: calc(var(--spacing) * 2) calc(var(--spacing) * 4);
@@ -569,13 +570,13 @@
   }
 
   .indieauth-actions button:hover {
-    border-color: var(--color-emerald-200);
+    border-color: var(--color-blue-400);
     color: var(--color-white);
   }
 
   .indieauth-actions .btn-primary {
-    border-color: var(--color-emerald-200);
-    background: var(--color-emerald-200);
+    border-color: var(--color-blue-400);
+    background: var(--color-blue-400);
     color: var(--color-zinc-950);
   }
 
@@ -658,7 +659,7 @@
     --tw-prose-body: var(--color-zinc-100);
     --tw-prose-headings: var(--color-zinc-50);
     --tw-prose-lead: var(--color-zinc-100);
-    --tw-prose-links: var(--color-emerald-200);
+    --tw-prose-links: var(--color-blue-400);
     --tw-prose-bold: var(--color-white);
     --tw-prose-counters: var(--color-zinc-200);
     --tw-prose-bullets: var(--color-zinc-200);
