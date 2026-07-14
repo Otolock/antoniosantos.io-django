@@ -9,7 +9,7 @@ from django.utils.html import format_html
 from django.utils import timezone
 
 from .llm import DescriptionGenerationError, generate_post_description
-from .models import Post, PostMedia, Subscriber, Tag
+from .models import Note, Post, PostMedia, Subscriber, Tag
 from webmentions.models import Webmention
 from webmentions.services import send_webmentions_for_post_async
 
@@ -363,6 +363,51 @@ class PostAdmin(admin.ModelAdmin):
                 f"Generated descriptions for {generated} post(s).",
                 messages.SUCCESS,
             )
+
+
+@admin.register(Note)
+class NoteAdmin(admin.ModelAdmin):
+    change_form_template = "admin/blog/note/change_form.html"
+    fields = ["body", "tags", "status", "published_at"]
+    list_display = ["display_title", "status", "published_at"]
+    list_filter = ["status", "tags"]
+    search_fields = ["body", "tags__name"]
+    filter_horizontal = ["tags"]
+    actions = ["publish_notes", "unpublish_notes"]
+
+    @admin.display(description="Note", ordering="published_at")
+    def display_title(self, obj):
+        return obj.display_title
+
+    def save_model(self, request, obj, form, change):
+        if "_publish_now" in request.POST:
+            obj.status = Note.PUBLISHED
+            obj.published_at = timezone.now()
+        super().save_model(request, obj, form, change)
+
+    def response_add(self, request, obj, post_url_continue=None):
+        if "_publish_now" in request.POST:
+            self.message_user(request, "Published this note now.", messages.SUCCESS)
+            return HttpResponseRedirect(reverse("admin:blog_note_change", args=[obj.pk]))
+        return super().response_add(request, obj, post_url_continue)
+
+    def response_change(self, request, obj):
+        if "_publish_now" in request.POST:
+            self.message_user(request, "Published this note now.", messages.SUCCESS)
+            return HttpResponseRedirect(reverse("admin:blog_note_change", args=[obj.pk]))
+        return super().response_change(request, obj)
+
+    @admin.action(description="Publish selected notes")
+    def publish_notes(self, request, queryset):
+        for note in queryset:
+            note.status = Note.PUBLISHED
+            if note.published_at is None:
+                note.published_at = timezone.now()
+            note.save()
+
+    @admin.action(description="Unpublish selected notes")
+    def unpublish_notes(self, request, queryset):
+        queryset.update(status=Note.DRAFT, published_at=None)
 
 
 @admin.register(PostMedia)

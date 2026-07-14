@@ -16,7 +16,17 @@ Antonio's Blog
     <h2 class="p-name section-heading">Latest posts</h2>
 
     {% for post in posts %}
-        <article class="h-entry post-list-item">
+        <article class="h-entry post-list-item{% if post.is_note %} note-list-item{% endif %}">
+            {% if post.is_note %}
+                <p class="post-date note-date">
+                    <a class="p-name u-url" href="{{ post.get_absolute_url }}">
+                        <time class="dt-published" datetime="{{ post.published_at|date:'c' }}">
+                            {{ post.published_at|date:"F j, Y \a\t g:i A" }}
+                        </time>
+                    </a>
+                </p>
+                <div class="e-content p-summary prose prose-invert note-prose">{{ post.body_html|safe }}</div>
+            {% else %}
             <h2 class="post-list-title">
                 <a class="p-name u-url" href="{% url 'blog:post_detail' post.slug %}">
                     {{ post.title }}
@@ -31,6 +41,7 @@ Antonio's Blog
 
             {% if post.description %}
                 <p class="p-summary">{{ post.description }}</p>
+            {% endif %}
             {% endif %}
         </article>
     {% empty %}

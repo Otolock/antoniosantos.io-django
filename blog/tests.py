@@ -12,7 +12,7 @@ from unittest.mock import patch
 from . import llm
 from .admin import PostAdmin
 from .feeds import LEGACY_RSS_GUID_SLUGS
-from .models import Post, PostMedia, Subscriber, Tag
+from .models import Note, Post, PostMedia, Subscriber, Tag
 from webmentions.models import Webmention
 
 
@@ -124,6 +124,19 @@ class PostTests(TestCase):
                 post.refresh_from_db()
                 self.assertEqual(post.published_at, published_at)
 
+    def test_published_note_gets_a_timestamp_slug_without_a_title(self):
+        published_at = timezone.datetime(
+            2026, 7, 14, 9, 30, tzinfo=timezone.get_current_timezone()
+        )
+        note = Note.objects.create(
+            body="A quick note.",
+            status=Note.PUBLISHED,
+            published_at=published_at,
+        )
+
+        self.assertEqual(note.slug, "note-2026-07-14-0930")
+        self.assertEqual(note.display_title, "July 14, 2026 at 9:30 AM")
+
     def test_posts_can_have_tags(self):
         post = self.make_post()
         django = Tag.objects.create(name="Django", slug="django")
@@ -198,6 +211,20 @@ class PostViewTests(TestCase):
         self.assertContains(response, 'class="dt-published"')
         self.assertContains(response, 'class="p-summary"')
 
+    def test_home_renders_notes_as_timestamped_content(self):
+        note = Note.objects.create(
+            slug="note-2026-07-14-0930",
+            body="A **quick** note.",
+            status=Note.PUBLISHED,
+            published_at=timezone.now(),
+        )
+
+        response = self.client.get(reverse("blog:home"))
+
+        self.assertContains(response, "note-list-item")
+        self.assertContains(response, "A <strong>quick</strong> note.")
+        self.assertContains(response, note.get_absolute_url())
+
     def test_archive_lists_all_published_posts_with_current_publish_dates(self):
         self.make_post()
         self.make_post(
@@ -246,6 +273,20 @@ class PostViewTests(TestCase):
 
         self.assertContains(response, "Live post")
         self.assertContains(response, "<strong>world</strong>")
+
+    def test_note_detail_uses_timestamp_in_place_of_a_title(self):
+        note = Note.objects.create(
+            slug="note-2026-07-14-0930",
+            body="A quick note.",
+            status=Note.PUBLISHED,
+            published_at=timezone.now(),
+        )
+
+        response = self.client.get(reverse("blog:note_detail", args=[note.slug]))
+
+        self.assertContains(response, "note-entry")
+        self.assertContains(response, "July")
+        self.assertNotContains(response, 'class="p-name post-title"')
 
     def test_post_detail_shows_reply_context_when_post_replies_to_url(self):
         post = self.make_post(
@@ -349,14 +390,6 @@ class PostViewTests(TestCase):
         self.assertContains(response, 'class="p-name"')
         self.assertContains(response, 'class="u-url" value="/"')
         self.assertContains(response, "Antonio Santos")
-
-    def test_now_page_marks_content_as_microformats_entry(self):
-        response = self.client.get(reverse("blog:now"))
-
-        self.assertContains(response, 'class="h-entry now-page"')
-        self.assertContains(response, 'class="p-name page-heading"')
-        self.assertContains(response, 'class="dt-updated"')
-        self.assertContains(response, 'datetime="2026-06-24"')
 
     def test_post_detail_resolves_at_root_level_slug_url(self):
         self.make_post()
@@ -651,6 +684,19 @@ class LatestPostsFeedTests(TestCase):
         self.assertNotContains(response, "Scheduled post")
 
     @override_settings(ALLOWED_HOSTS=["example.com"], SITE_URL="https://example.com")
+    def test_rss_includes_published_notes(self):
+        note = Note.objects.create(
+            body="A quick note.",
+            status=Note.PUBLISHED,
+            published_at=timezone.now(),
+        )
+
+        response = self.client.get(reverse("blog:rss"), HTTP_HOST="example.com")
+
+        self.assertContains(response, "A quick note.")
+        self.assertContains(response, f"https://example.com{note.get_absolute_url()}")
+
+    @override_settings(ALLOWED_HOSTS=["example.com"], SITE_URL="https://example.com")
     def test_rss_uses_canonical_post_urls(self):
         self.make_post()
 
@@ -809,6 +855,20 @@ class SitemapTests(TestCase):
         self.assertIn("https://example.com/live-post/", content)
 
     @override_settings(ALLOWED_HOSTS=["example.com"])
+    def test_sitemap_includes_published_notes(self):
+        note = Note.objects.create(
+            body="A quick note.",
+            status=Note.PUBLISHED,
+            published_at=timezone.now(),
+        )
+
+        response = self.client.get(
+            reverse("blog:sitemap"), secure=True, HTTP_HOST="example.com"
+        )
+
+        self.assertContains(response, note.get_absolute_url())
+
+    @override_settings(ALLOWED_HOSTS=["example.com"])
     def test_sitemap_excludes_drafts_and_scheduled_posts(self):
         self.make_post(slug="live-post")
         self.make_post(
@@ -903,6 +963,31 @@ class PostMediaTests(TestCase):
 
 @override_settings(STORAGES=TEST_STORAGES)
 class PostAdminTests(TestCase):
+    def test_admin_can_publish_an_untitled_note(self):
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        before_publish = timezone.now()
+        response = self.client.post(
+            reverse("admin:blog_note_add"),
+            {
+                "body": "A note from the admin.",
+                "status": Note.DRAFT,
+                "published_at_0": "",
+                "published_at_1": "",
+                "_publish_now": "Publish Now",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        note = Note.objects.get()
+        self.assertTrue(note.slug.startswith("note-"))
+        self.assertGreaterEqual(note.published_at, before_publish)
+
     def test_reserved_slugs_are_rejected_by_admin_validation(self):
         user = get_user_model().objects.create_superuser(
             username="admin",

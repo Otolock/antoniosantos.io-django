@@ -8,13 +8,21 @@
 <section class="intro-section">
     <h2 class="page-heading">#{{ tag.name }}</h2>
     <p class="text-zinc-100">
-        Posts tagged #{{ tag.name }}.
+        Posts and notes tagged #{{ tag.name }}.
     </p>
 </section>
 
 <section class="h-feed post-list">
     {% for post in posts %}
-        <article class="h-entry post-list-item with-divider">
+        <article class="h-entry post-list-item with-divider{% if post.is_note %} note-list-item{% endif %}">
+            {% if post.is_note %}
+                <p class="post-date note-date">
+                    <a class="p-name u-url" href="{{ post.get_absolute_url }}">
+                        <time class="dt-published" datetime="{{ post.published_at|date:'c' }}">{{ post.published_at|date:"F j, Y \a\t g:i A" }}</time>
+                    </a>
+                </p>
+                <div class="e-content p-summary prose prose-invert note-prose">{{ post.body_html|safe }}</div>
+            {% else %}
             <p class="post-date">
                 <time class="dt-published" datetime="{{ post.published_at|date:'c' }}">
                     {{ post.published_at|date:"F j, Y" }}
@@ -30,9 +38,10 @@
             {% if post.description %}
                 <p class="p-summary">{{ post.description }}</p>
             {% endif %}
+            {% endif %}
         </article>
     {% empty %}
-        <p>No published posts with this tag yet.</p>
+        <p>No published posts or notes with this tag yet.</p>
     {% endfor %}
 </section>
 {% endblock %}

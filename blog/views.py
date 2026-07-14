@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils import timezone
 from .forms import SubscribeForm
-from .models import Post, PostMedia, Subscriber, Tag
+from .models import Note, Post, PostMedia, Subscriber, Tag
 from webmentions.models import Webmention
 
 
@@ -17,19 +17,41 @@ def published_posts():
     )
 
 
+def published_notes():
+    return Note.objects.filter(
+        status=Note.PUBLISHED,
+        published_at__lte=timezone.now(),
+    )
+
+
+def published_entries():
+    return sorted(
+        [*published_posts(), *published_notes()],
+        key=lambda entry: entry.published_at,
+        reverse=True,
+    )
+
+
 def home(request):
-    posts = published_posts()[:5]
+    posts = published_entries()[:5]
     return render(request, "blog/home.html", {"posts": posts})
 
 
 def archive(request):
-    posts = published_posts()
+    posts = published_entries()
     return render(request, "blog/archive.html", {"posts": posts})
 
 
 def tag_detail(request, slug):
     tag = get_object_or_404(Tag, slug=slug)
-    posts = published_posts().filter(tags=tag).distinct()
+    posts = sorted(
+        [
+            *published_posts().filter(tags=tag).distinct(),
+            *published_notes().filter(tags=tag).distinct(),
+        ],
+        key=lambda entry: entry.published_at,
+        reverse=True,
+    )
     return render(request, "blog/tag_detail.html", {"tag": tag, "posts": posts})
 
 
@@ -98,6 +120,24 @@ def post_detail(request, slug):
             "canonical_url": canonical_url,
             "webmentions": webmentions,
             "post_tags": post.tags.all(),
+        },
+    )
+
+
+def note_detail(request, slug):
+    note = get_object_or_404(
+        Note,
+        slug=slug,
+        status=Note.PUBLISHED,
+        published_at__lte=timezone.now(),
+    )
+    return render(
+        request,
+        "blog/note_detail.html",
+        {
+            "note": note,
+            "canonical_url": request.build_absolute_uri(note.get_absolute_url()),
+            "note_tags": note.tags.all(),
         },
     )
 

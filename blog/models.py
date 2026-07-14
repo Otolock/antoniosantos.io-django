@@ -106,6 +106,81 @@ class Post(models.Model):
         )
 
 
+class Note(models.Model):
+    DRAFT = "draft"
+    PUBLISHED = "published"
+    DELETED = "deleted"
+
+    STATUS_CHOICES = [
+        (DRAFT, "Draft"),
+        (PUBLISHED, "Published"),
+        (DELETED, "Deleted"),
+    ]
+
+    slug = models.SlugField(unique=True, blank=True)
+    body = models.TextField()
+    tags = models.ManyToManyField(Tag, related_name="notes", blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=DRAFT)
+    published_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-published_at"]
+
+    def __str__(self):
+        return self.display_title
+
+    def save(self, *args, **kwargs):
+        if self.status == self.PUBLISHED and self.published_at is None:
+            self.published_at = timezone.now()
+
+        if not self.slug or self.slug.startswith("note-draft-"):
+            if self.status == self.PUBLISHED and self.published_at:
+                self.slug = self._generate_slug(self.published_at)
+            elif not self.slug:
+                self.slug = f"note-draft-{timezone.now():%Y%m%d%H%M%S%f}"
+
+        super().save(*args, **kwargs)
+
+    def _generate_slug(self, published_at):
+        base = timezone.localtime(published_at).strftime("note-%Y-%m-%d-%H%M")
+        candidate = base
+        suffix = 2
+        while type(self).objects.exclude(pk=self.pk).filter(slug=candidate).exists():
+            candidate = f"{base}-{suffix}"
+            suffix += 1
+        return candidate
+
+    def clean(self):
+        super().clean()
+        if self.slug and self.slug.lower() in RESERVED_POST_SLUGS:
+            raise ValidationError({"slug": "This slug is reserved for a site route."})
+
+    def get_absolute_url(self):
+        return reverse("blog:note_detail", args=[self.slug])
+
+    @property
+    def display_title(self):
+        if self.published_at:
+            return timezone.localtime(self.published_at).strftime("%B %-d, %Y at %-I:%M %p")
+        return "Untitled note"
+
+    @property
+    def body_html(self):
+        return sanitize_html(markdown(self.body))
+
+    @property
+    def is_published(self):
+        return (
+            self.status == self.PUBLISHED
+            and self.published_at is not None
+            and self.published_at <= timezone.now()
+        )
+
+    @property
+    def is_note(self):
+        return True
+
+
 class Subscriber(models.Model):
     email = models.EmailField(unique=True)
     created_at = models.DateTimeField(auto_now_add=True)

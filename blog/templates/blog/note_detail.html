@@ -1,0 +1,28 @@
+{% extends "blog/base.html" %}
+
+{% block title %}{{ note.display_title }}{% endblock %}
+
+{% block head %}<link rel="canonical" href="{{ canonical_url }}">{% endblock %}
+
+{% block content %}
+<article class="h-entry post-entry note-entry">
+    <header class="post-header">
+        <p class="post-date note-date">
+            <a class="p-name u-url" href="{{ note.get_absolute_url }}">
+                <time class="dt-published" datetime="{{ note.published_at|date:'c' }}">{{ note.published_at|date:"F j, Y \a\t g:i A" }}</time>
+            </a>
+            <span class="p-author h-card"><data class="p-name" value="Antonio Santos"></data><data class="u-url" value="{% url 'blog:home' %}"></data></span>
+        </p>
+    </header>
+
+    <div class="e-content prose prose-invert post-prose">{{ note.body_html|safe }}</div>
+
+    {% if note_tags %}
+        <nav class="post-tags" aria-label="Note tags">
+            {% for tag in note_tags %}
+                <a class="tag-pill p-category" href="{% url 'blog:tag_detail' tag.slug %}">#{{ tag.name }}</a>
+            {% endfor %}
+        </nav>
+    {% endif %}
+</article>
+{% endblock %}

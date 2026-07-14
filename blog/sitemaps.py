@@ -2,7 +2,7 @@ from django.contrib.sitemaps import Sitemap
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import Post
+from .models import Note, Post
 
 
 class StaticViewSitemap(Sitemap):
@@ -21,10 +21,15 @@ class PostSitemap(Sitemap):
     priority = 0.8
 
     def items(self):
-        return Post.objects.filter(
+        posts = Post.objects.filter(
             status=Post.PUBLISHED,
             published_at__lte=timezone.now(),
         )
+        notes = Note.objects.filter(
+            status=Note.PUBLISHED,
+            published_at__lte=timezone.now(),
+        )
+        return sorted([*posts, *notes], key=lambda item: item.published_at, reverse=True)
 
     def lastmod(self, post):
         return post.published_at
