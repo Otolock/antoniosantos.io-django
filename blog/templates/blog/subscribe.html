@@ -6,31 +6,21 @@ Subscribe
 
 {% block content %}
 <section class="subscribe-section">
-    <h2 class="page-heading">Subscribe</h2>
+    <h2 class="page-heading">RSS</h2>
+    <p>Follow the site in your feed reader. Choose the stream that suits you.</p>
 
-    <form class="subscribe-form" action="{% url 'blog:subscribe' %}" method="post">
-        {% csrf_token %}
-        <input type="hidden" name="next" value="{% url 'blog:subscribe' %}">
+    <div class="rss-feed-options">
+        <a class="rss-feed-card" href="{% url 'blog:rss' %}">
+            <span class="rss-feed-card-title">Posts and notes</span>
+            <span class="rss-feed-card-description">Everything published here, from longer writing to short updates.</span>
+            <code class="rss-feed-card-url">{{ request.scheme }}://{{ request.get_host }}{% url 'blog:rss' %}</code>
+        </a>
 
-        <div class="form-field">
-            <label for="subscribe-email">
-                Email address
-            </label>
-            <input
-                id="subscribe-email"
-                name="email"
-                type="email"
-                placeholder="you@example.com"
-                autocomplete="email"
-                required
-            >
-        </div>
-
-        <button
-            type="submit"
-        >
-            Subscribe
-        </button>
-    </form>
+        <a class="rss-feed-card" href="{% url 'blog:posts_rss' %}">
+            <span class="rss-feed-card-title">Posts only</span>
+            <span class="rss-feed-card-description">Long-form posts without the shorter notes.</span>
+            <code class="rss-feed-card-url">{{ request.scheme }}://{{ request.get_host }}{% url 'blog:posts_rss' %}</code>
+        </a>
+    </div>
 </section>
 {% endblock %}

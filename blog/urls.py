@@ -2,7 +2,7 @@ from django.urls import path
 from django.contrib.sitemaps.views import sitemap
 from django.contrib import admin
 
-from .feeds import LatestPostsFeed
+from .feeds import LatestPostsFeed, PostsOnlyFeed
 from . import views
 from .sitemaps import PostSitemap, StaticViewSitemap
 
@@ -24,10 +24,12 @@ urlpatterns = [
     path("post/<slug:slug>/", views.legacy_post_redirect, name="legacy_post_detail"),
     path("posts/<slug:slug>/", views.legacy_post_redirect, name="legacy_posts_detail"),
     path("rss.xml", LatestPostsFeed(), name="rss"),
+    path("posts.rss.xml", PostsOnlyFeed(), name="posts_rss"),
     path("sitemap.xml", sitemap, {"sitemaps": sitemaps}, name="sitemap"),
     path("media/<slug:slug>/", views.media_detail, name="media_detail"),
     path("notes/<slug:slug>/", views.note_detail, name="note_detail"),
-    path("subscribe/", views.subscribe, name="subscribe"),
+    path("subscribe.html", views.subscribe, name="subscribe"),
+    path("subscribe/", views.legacy_subscribe_redirect, name="legacy_subscribe"),
     path("tags/<slug:slug>/", views.tag_detail, name="tag_detail"),
     path("<slug:slug>/", views.post_detail, name="post_detail"),
 ]

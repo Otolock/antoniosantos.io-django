@@ -12,7 +12,7 @@ from unittest.mock import patch
 from . import llm
 from .admin import PostAdmin
 from .feeds import LEGACY_RSS_GUID_SLUGS
-from .models import Note, Post, PostMedia, Subscriber, Tag
+from .models import Note, Post, PostMedia, Tag
 from webmentions.models import Webmention
 
 
@@ -572,60 +572,22 @@ class PostViewTests(TestCase):
 
 @override_settings(STORAGES=TEST_STORAGES)
 class SubscribeViewTests(TestCase):
-    def test_subscribe_page_shows_email_form(self):
+    def test_subscribe_page_shows_both_rss_options(self):
         response = self.client.get(reverse("blog:subscribe"))
 
-        self.assertContains(response, "Subscribe")
-        self.assertContains(response, 'type="email"')
+        self.assertContains(response, "Posts and notes")
+        self.assertContains(response, "Posts only")
+        self.assertContains(response, reverse("blog:rss"))
+        self.assertContains(response, reverse("blog:posts_rss"))
+        self.assertNotContains(response, 'type="email"')
 
-    def test_subscribe_adds_normalized_email_and_redirects_back(self):
-        response = self.client.post(
-            reverse("blog:subscribe"),
-            {
-                "email": " Reader@Example.COM ",
-                "next": reverse("blog:archive"),
-            },
-        )
-
-        self.assertRedirects(response, reverse("blog:archive"))
-        subscriber = Subscriber.objects.get()
-        self.assertEqual(subscriber.email, "reader@example.com")
-        self.assertEqual(subscriber.source_path, reverse("blog:archive"))
-
-    def test_subscribe_without_next_redirects_to_subscribe_page(self):
+    def test_subscribe_page_does_not_accept_email_signups(self):
         response = self.client.post(
             reverse("blog:subscribe"),
             {"email": "reader@example.com"},
         )
 
-        self.assertRedirects(response, reverse("blog:subscribe"))
-        self.assertEqual(Subscriber.objects.get().email, "reader@example.com")
-
-    def test_subscribe_does_not_duplicate_existing_email(self):
-        Subscriber.objects.create(email="reader@example.com")
-
-        response = self.client.post(
-            reverse("blog:subscribe"),
-            {
-                "email": "READER@example.com",
-                "next": reverse("blog:home"),
-            },
-        )
-
-        self.assertRedirects(response, reverse("blog:home"))
-        self.assertEqual(Subscriber.objects.count(), 1)
-
-    def test_subscribe_rejects_invalid_email(self):
-        response = self.client.post(
-            reverse("blog:subscribe"),
-            {
-                "email": "not an email",
-                "next": reverse("blog:home"),
-            },
-        )
-
-        self.assertRedirects(response, reverse("blog:home"))
-        self.assertEqual(Subscriber.objects.count(), 0)
+        self.assertEqual(response.status_code, 405)
 
 
 class LatestPostsFeedTests(TestCase):
@@ -695,6 +657,21 @@ class LatestPostsFeedTests(TestCase):
 
         self.assertContains(response, "A quick note.")
         self.assertContains(response, f"https://example.com{note.get_absolute_url()}")
+
+    @override_settings(ALLOWED_HOSTS=["example.com"], SITE_URL="https://example.com")
+    def test_posts_only_rss_excludes_notes(self):
+        self.make_post()
+        Note.objects.create(
+            body="A quick note.",
+            status=Note.PUBLISHED,
+            published_at=timezone.now(),
+        )
+
+        response = self.client.get(reverse("blog:posts_rss"), HTTP_HOST="example.com")
+
+        self.assertContains(response, "Live post")
+        self.assertNotContains(response, "A quick note.")
+        self.assertContains(response, "https://example.com/posts.rss.xml")
 
     @override_settings(ALLOWED_HOSTS=["example.com"], SITE_URL="https://example.com")
     def test_rss_uses_canonical_post_urls(self):
@@ -851,7 +828,7 @@ class SitemapTests(TestCase):
         self.assertIn("https://example.com/", content)
         self.assertIn("https://example.com/archive/", content)
         self.assertIn("https://example.com/now/", content)
-        self.assertIn("https://example.com/subscribe/", content)
+        self.assertIn("https://example.com/subscribe.html", content)
         self.assertIn("https://example.com/live-post/", content)
 
     @override_settings(ALLOWED_HOSTS=["example.com"])

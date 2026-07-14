@@ -34,7 +34,7 @@ def site_url(path):
 
 class LatestPostsFeed(Feed):
     title = "Antonio Santos"
-    description = "Latest posts"
+    description = "Latest posts and notes"
 
     def link(self):
         return site_url("/")
@@ -70,3 +70,17 @@ class LatestPostsFeed(Feed):
 
     def item_pubdate(self, item):
         return item.published_at
+
+
+class PostsOnlyFeed(LatestPostsFeed):
+    title = "Antonio Santos — Posts"
+    description = "Latest posts"
+
+    def feed_url(self):
+        return site_url("/posts.rss.xml")
+
+    def items(self):
+        return Post.objects.filter(
+            status=Post.PUBLISHED,
+            published_at__lte=timezone.now(),
+        )[:20]
