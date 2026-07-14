@@ -8,18 +8,14 @@ from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils import timezone
 
-from .forms import CommentForm
 from .llm import DescriptionGenerationError, generate_post_description
-from .models import Comment, Post, PostMedia, Subscriber, Tag
+from .models import Post, PostMedia, Subscriber, Tag
 from webmentions.models import Webmention
 from webmentions.services import send_webmentions_for_post_async
 
 
 def pending_moderation_count():
-    return (
-        Comment.objects.filter(status=Comment.PENDING).count()
-        + Webmention.objects.filter(status=Webmention.PENDING).count()
-    )
+    return Webmention.objects.filter(status=Webmention.PENDING).count()
 
 
 def moderation_queue_view(request):
@@ -27,14 +23,8 @@ def moderation_queue_view(request):
         _moderate_queue_item(request)
         return HttpResponseRedirect(reverse("admin:moderation_queue"))
 
-    pending_comments = Comment.objects.filter(
-        status=Comment.PENDING,
-    ).select_related("post")
     pending_webmentions = Webmention.objects.filter(status=Webmention.PENDING)
     queue_items = [
-        _comment_queue_item(comment)
-        for comment in pending_comments.order_by("created_at", "pk")
-    ] + [
         _webmention_queue_item(webmention)
         for webmention in pending_webmentions.order_by("created_at", "pk")
     ]
@@ -43,9 +33,8 @@ def moderation_queue_view(request):
     context = {
         **admin.site.each_context(request),
         "title": "Moderation queue",
-        "subtitle": "Comments and webmentions pending approval",
+        "subtitle": "Webmentions pending approval",
         "queue_items": queue_items,
-        "pending_comment_count": pending_comments.count(),
         "pending_webmention_count": pending_webmentions.count(),
     }
     return render(request, "admin/moderation_queue.html", context)
@@ -58,16 +47,6 @@ def _moderate_queue_item(request):
 
     if action not in {"approve", "reject"}:
         raise PermissionDenied
-
-    if item_type == "comment":
-        if not request.user.has_perm("blog.change_comment"):
-            raise PermissionDenied
-        comment = get_object_or_404(Comment, pk=item_id, status=Comment.PENDING)
-        comment.status = Comment.APPROVED if action == "approve" else Comment.REJECTED
-        comment.save(update_fields=["status"])
-        action_label = "Approved" if action == "approve" else "Rejected"
-        messages.success(request, f"{action_label} comment from {comment.author_name}.")
-        return
 
     if item_type == "webmention":
         if not request.user.has_perm("webmentions.change_webmention"):
@@ -85,21 +64,6 @@ def _moderate_queue_item(request):
         return
 
     raise PermissionDenied
-
-
-def _comment_queue_item(comment):
-    return {
-        "id": comment.pk,
-        "type": "comment",
-        "label": "Comment",
-        "created_at": comment.created_at,
-        "author": comment.author_name,
-        "title": comment.post.title,
-        "body": comment.body,
-        "source_url": "",
-        "target_url": comment.post.get_absolute_url(),
-        "change_url": reverse("admin:blog_comment_change", args=[comment.pk]),
-    }
 
 
 def _webmention_queue_item(webmention):
@@ -287,8 +251,6 @@ class PostAdmin(admin.ModelAdmin):
             {
                 "post": post,
                 "canonical_url": request.build_absolute_uri(canonical_path),
-                "comments": [],
-                "comment_form": CommentForm(),
                 "webmentions": [],
                 "post_tags": post_tags,
                 "is_preview": True,
@@ -399,52 +361,6 @@ class PostAdmin(admin.ModelAdmin):
             self.message_user(
                 request,
                 f"Generated descriptions for {generated} post(s).",
-                messages.SUCCESS,
-            )
-
-
-@admin.register(Comment)
-class CommentAdmin(admin.ModelAdmin):
-    list_display = [
-        "author_name",
-        "post",
-        "status",
-        "created_at",
-        "approved_at",
-    ]
-    list_filter = ["status", "created_at", "approved_at"]
-    search_fields = ["author_name", "author_email", "body", "post__title"]
-    readonly_fields = ["created_at", "updated_at", "approved_at"]
-    actions = ["approve_comments", "reject_comments"]
-    autocomplete_fields = ["post"]
-
-    @admin.action(description="Approve selected comments")
-    def approve_comments(self, request, queryset):
-        approved = 0
-        for comment in queryset:
-            comment.status = Comment.APPROVED
-            comment.save(update_fields=["status"])
-            approved += 1
-
-        if approved:
-            self.message_user(
-                request,
-                f"Approved {approved} comment(s).",
-                messages.SUCCESS,
-            )
-
-    @admin.action(description="Reject selected comments")
-    def reject_comments(self, request, queryset):
-        rejected = 0
-        for comment in queryset:
-            comment.status = Comment.REJECTED
-            comment.save(update_fields=["status"])
-            rejected += 1
-
-        if rejected:
-            self.message_user(
-                request,
-                f"Rejected {rejected} comment(s).",
                 messages.SUCCESS,
             )
 

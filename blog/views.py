@@ -5,10 +5,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils import timezone
-from ipaddress import ip_address
-
-from .forms import CommentForm, SubscribeForm
-from .models import Comment, Post, PostMedia, Subscriber, Tag
+from .forms import SubscribeForm
+from .models import Post, PostMedia, Subscriber, Tag
 from webmentions.models import Webmention
 
 
@@ -85,29 +83,9 @@ def post_detail(request, slug):
             post.refresh_from_db(fields=["upvotes_count"])
             if request.headers.get("x-requested-with") == "fetch":
                 return JsonResponse({"upvotes_count": post.upvotes_count})
-            return redirect(f"{post.get_absolute_url()}#comment-actions")
-
-        comment_form = CommentForm(request.POST)
-        if comment_form.honeypot_filled:
-            messages.success(request, "Thanks. Your comment is waiting for review.")
-            return redirect(post.get_absolute_url())
-
-        if comment_form.is_valid():
-            Comment.objects.create(
-                post=post,
-                author_name=comment_form.cleaned_data["author_name"],
-                author_email=comment_form.cleaned_data["author_email"],
-                body=comment_form.cleaned_data["body"].strip(),
-                ip_address=_client_ip(request),
-                user_agent=request.META.get("HTTP_USER_AGENT", "")[:300],
-            )
-            messages.success(request, "Thanks. Your comment is waiting for review.")
-            return redirect(post.get_absolute_url())
-    else:
-        comment_form = CommentForm()
+            return redirect(f"{post.get_absolute_url()}#feedback-actions")
 
     canonical_url = request.build_absolute_uri(post.get_absolute_url())
-    comments = post.comments.filter(status=Comment.APPROVED)
     webmentions = Webmention.objects.filter(
         target_url=canonical_url,
         status=Webmention.APPROVED,
@@ -118,8 +96,6 @@ def post_detail(request, slug):
         {
             "post": post,
             "canonical_url": canonical_url,
-            "comments": comments,
-            "comment_form": comment_form,
             "webmentions": webmentions,
             "post_tags": post.tags.all(),
         },
@@ -133,19 +109,3 @@ def legacy_post_redirect(request, slug):
 def media_detail(request, slug):
     media = get_object_or_404(PostMedia, slug=slug)
     return redirect(media.file.url)
-
-
-def _client_ip(request):
-    forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR", "")
-    if forwarded_for:
-        candidate = forwarded_for.split(",", 1)[0].strip()
-    else:
-        candidate = request.META.get("REMOTE_ADDR", "").strip()
-
-    if not candidate:
-        return None
-
-    try:
-        return str(ip_address(candidate))
-    except ValueError:
-        return None

@@ -64,8 +64,8 @@
 {% endif %}
 
 {% if not is_preview %}
-<nav class="comment-actions" id="comment-actions" aria-label="Post feedback">
-    <form class="upvote-form" action="{{ post.get_absolute_url }}#comment-actions" method="post" data-upvote-form>
+<nav class="feedback-actions" id="feedback-actions" aria-label="Post feedback">
+    <form class="upvote-form" action="{{ post.get_absolute_url }}#feedback-actions" method="post" data-upvote-form>
         {% csrf_token %}
         <input type="hidden" name="action" value="upvote">
         <button class="upvote-button" type="submit" data-upvote-button aria-label="Upvote this post ({{ post.upvotes_count }})">
@@ -74,9 +74,7 @@
         </button>
     </form>
     <span aria-hidden="true">|</span>
-    <a href="#leave-comment">Leave a Comment</a>
-    <span aria-hidden="true">|</span>
-    <a href="#comments">View Comments ({{ comments|length }})</a>
+    <a href="https://letterbird.co/antoniosantos">Reply via email</a>
 </nav>
 
 <script>
@@ -127,70 +125,5 @@
     })();
 </script>
 
-<section class="comment-panel comment-form-section" id="leave-comment" aria-label="Leave a comment">
-    <p class="moderation-note">
-        Comments are moderated, so yours may not appear right away.
-    </p>
-
-    <form class="comment-form" action="{{ post.get_absolute_url }}#leave-comment" method="post">
-        {% csrf_token %}
-
-        <div class="form-field">
-            <label for="{{ comment_form.author_name.id_for_label }}">{{ comment_form.author_name.label }}</label>
-            {{ comment_form.author_name }}
-            {% for error in comment_form.author_name.errors %}
-                <p class="form-error">{{ error }}</p>
-            {% endfor %}
-        </div>
-
-        <div class="form-field">
-            <label for="{{ comment_form.author_email.id_for_label }}">{{ comment_form.author_email.label }}</label>
-            {{ comment_form.author_email }}
-            {% if comment_form.author_email.help_text %}
-                <p class="form-help">{{ comment_form.author_email.help_text }}</p>
-            {% endif %}
-            {% for error in comment_form.author_email.errors %}
-                <p class="form-error">{{ error }}</p>
-            {% endfor %}
-        </div>
-
-        <div class="form-field comment-honeypot" aria-hidden="true">
-            <label for="{{ comment_form.website.id_for_label }}">{{ comment_form.website.label }}</label>
-            {{ comment_form.website }}
-        </div>
-
-        <div class="form-field">
-            <label for="{{ comment_form.body.id_for_label }}">{{ comment_form.body.label }}</label>
-            {{ comment_form.body }}
-            {% for error in comment_form.body.errors %}
-                <p class="form-error">{{ error }}</p>
-            {% endfor %}
-        </div>
-
-        <button type="submit">Submit for review</button>
-    </form>
-</section>
-
-<section class="comment-panel comments-section" id="comments" aria-label="Comments">
-    {% if comments %}
-        <ol class="comment-list">
-            {% for comment in comments %}
-                <li class="comment">
-                    <header class="comment-header">
-                        <strong>{{ comment.author_name }}</strong>
-                        <time datetime="{{ comment.created_at|date:'c' }}">
-                            {{ comment.created_at|date:"F j, Y" }}
-                        </time>
-                    </header>
-                    <div class="comment-body">
-                        {{ comment.body|linebreaksbr }}
-                    </div>
-                </li>
-            {% endfor %}
-        </ol>
-    {% else %}
-        <p class="comments-empty">No comments yet.</p>
-    {% endif %}
-</section>
 {% endif %}
 {% endblock %}

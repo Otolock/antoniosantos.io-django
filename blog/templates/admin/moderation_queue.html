@@ -13,9 +13,7 @@
   <div class="module">
     <h2>Pending approval</h2>
     <p class="help">
-      {{ pending_comment_count }} comment{{ pending_comment_count|pluralize }} and
-      {{ pending_webmention_count }} webmention{{ pending_webmention_count|pluralize }}
-      waiting for review.
+      {{ pending_webmention_count }} webmention{{ pending_webmention_count|pluralize }} waiting for review.
     </p>
   </div>
 
@@ -78,7 +76,7 @@
     {% endfor %}
   {% else %}
     <div class="module">
-      <p>No comments or webmentions are pending approval.</p>
+      <p>No webmentions are pending approval.</p>
     </div>
   {% endif %}
 </div>

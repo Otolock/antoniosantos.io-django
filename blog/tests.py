@@ -12,7 +12,7 @@ from unittest.mock import patch
 from . import llm
 from .admin import PostAdmin
 from .feeds import LEGACY_RSS_GUID_SLUGS
-from .models import Comment, Post, PostMedia, Subscriber, Tag
+from .models import Post, PostMedia, Subscriber, Tag
 from webmentions.models import Webmention
 
 
@@ -133,46 +133,6 @@ class PostTests(TestCase):
 
         self.assertCountEqual(post.tags.all(), [django, python])
         self.assertCountEqual(django.posts.all(), [post])
-
-
-class CommentTests(TestCase):
-    def make_post(self):
-        return Post.objects.create(
-            title="Test post",
-            slug="test-post",
-            body="Hello.",
-            status=Post.PUBLISHED,
-            published_at=timezone.now(),
-        )
-
-    def test_save_sets_approved_at_when_approved(self):
-        comment = Comment.objects.create(
-            post=self.make_post(),
-            author_name="Reader",
-            author_email="reader@example.com",
-            body="Nice post.",
-        )
-
-        comment.status = Comment.APPROVED
-        comment.save(update_fields=["status"])
-
-        comment.refresh_from_db()
-        self.assertIsNotNone(comment.approved_at)
-
-    def test_save_clears_approved_at_when_unapproved(self):
-        comment = Comment.objects.create(
-            post=self.make_post(),
-            author_name="Reader",
-            author_email="reader@example.com",
-            body="Nice post.",
-            status=Comment.APPROVED,
-        )
-
-        comment.status = Comment.REJECTED
-        comment.save(update_fields=["status"])
-
-        comment.refresh_from_db()
-        self.assertIsNone(comment.approved_at)
 
 
 @override_settings(STORAGES=TEST_STORAGES)
@@ -530,74 +490,19 @@ class PostViewTests(TestCase):
                 )
                 self.assertEqual(response.status_code, 404)
 
-    def test_post_detail_lists_only_approved_comments(self):
-        post = self.make_post()
-        Comment.objects.create(
-            post=post,
-            author_name="Ada",
-            author_email="ada@example.com",
-            body="Approved and visible.",
-            status=Comment.APPROVED,
-        )
-        Comment.objects.create(
-            post=post,
-            author_name="Pending Reader",
-            author_email="pending@example.com",
-            body="Still waiting.",
-            status=Comment.PENDING,
-        )
-
-        response = self.client.get(reverse("blog:post_detail", args=[post.slug]))
-
-        self.assertContains(response, "Approved and visible.")
-        self.assertContains(response, "Ada")
-        self.assertNotContains(response, "Still waiting.")
-        self.assertNotContains(response, "Pending Reader")
-
-    def test_comment_form_explains_moderation(self):
-        self.make_post()
-
-        response = self.client.get(reverse("blog:post_detail", args=["live-post"]))
-
-        self.assertContains(
-            response,
-            "Comments are moderated, so yours may not appear right away.",
-        )
-
-    def test_comment_submission_creates_pending_comment_and_redirects(self):
-        post = self.make_post()
-
-        response = self.client.post(
-            reverse("blog:post_detail", args=[post.slug]),
-            {
-                "author_name": " Reader ",
-                "author_email": " READER@example.com ",
-                "body": "This is a thoughtful note.",
-                "website": "",
-            },
-            REMOTE_ADDR="127.0.0.1",
-            HTTP_USER_AGENT="Test browser",
-        )
-
-        self.assertRedirects(response, post.get_absolute_url())
-        comment = Comment.objects.get()
-        self.assertEqual(comment.post, post)
-        self.assertEqual(comment.author_name, "Reader")
-        self.assertEqual(comment.author_email, "reader@example.com")
-        self.assertEqual(comment.body, "This is a thoughtful note.")
-        self.assertEqual(comment.status, Comment.PENDING)
-        self.assertEqual(comment.ip_address, "127.0.0.1")
-        self.assertEqual(comment.user_agent, "Test browser")
-
     def test_post_detail_shows_anonymous_upvote_button(self):
         post = self.make_post(upvotes_count=2)
 
         response = self.client.get(reverse("blog:post_detail", args=[post.slug]))
 
-        self.assertContains(response, 'id="comment-actions"')
+        self.assertContains(response, 'id="feedback-actions"')
         self.assertContains(response, 'name="action" value="upvote"')
         self.assertContains(response, 'data-upvote-button')
         self.assertContains(response, 'data-upvote-count')
+        self.assertContains(
+            response,
+            'href="https://letterbird.co/antoniosantos">Reply via email</a>',
+        )
         self.assertContains(response, 'fetch(form.getAttribute("action")')
         self.assertContains(response, "&#8593;")
         self.assertNotContains(response, ">Upvote ")
@@ -611,10 +516,9 @@ class PostViewTests(TestCase):
             {"action": "upvote"},
         )
 
-        self.assertRedirects(response, f"{post.get_absolute_url()}#comment-actions")
+        self.assertRedirects(response, f"{post.get_absolute_url()}#feedback-actions")
         post.refresh_from_db()
         self.assertEqual(post.upvotes_count, 3)
-        self.assertEqual(Comment.objects.count(), 0)
         self.assertNotIn(f"post_{post.pk}_upvoted", response.cookies)
 
     def test_upvote_fetch_returns_updated_count_without_cookie(self):
@@ -630,60 +534,7 @@ class PostViewTests(TestCase):
         self.assertEqual(response.json(), {"upvotes_count": 3})
         post.refresh_from_db()
         self.assertEqual(post.upvotes_count, 3)
-        self.assertEqual(Comment.objects.count(), 0)
         self.assertNotIn(f"post_{post.pk}_upvoted", response.cookies)
-
-    def test_comment_submission_allows_anonymous_author_without_email(self):
-        post = self.make_post()
-
-        response = self.client.post(
-            reverse("blog:post_detail", args=[post.slug]),
-            {
-                "author_name": "",
-                "author_email": "",
-                "body": "This is a quiet anonymous note.",
-                "website": "",
-            },
-        )
-
-        self.assertRedirects(response, post.get_absolute_url())
-        comment = Comment.objects.get()
-        self.assertEqual(comment.author_name, "Anonymous")
-        self.assertEqual(comment.author_email, "")
-        self.assertEqual(comment.body, "This is a quiet anonymous note.")
-
-    def test_comment_honeypot_discards_submission(self):
-        post = self.make_post()
-
-        response = self.client.post(
-            reverse("blog:post_detail", args=[post.slug]),
-            {
-                "author_name": "Spammer",
-                "author_email": "spam@example.com",
-                "body": "Definitely normal.",
-                "website": "https://spam.example.com",
-            },
-        )
-
-        self.assertRedirects(response, post.get_absolute_url())
-        self.assertEqual(Comment.objects.count(), 0)
-
-    def test_invalid_comment_submission_does_not_create_comment(self):
-        post = self.make_post()
-
-        response = self.client.post(
-            reverse("blog:post_detail", args=[post.slug]),
-            {
-                "author_name": "",
-                "author_email": "not an email",
-                "body": "",
-                "website": "",
-            },
-        )
-
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "This field is required.")
-        self.assertEqual(Comment.objects.count(), 0)
 
 
 @override_settings(STORAGES=TEST_STORAGES)
@@ -1391,7 +1242,7 @@ class PostAdminTests(TestCase):
         self.assertContains(response, 'content="noindex,nofollow"')
         self.assertNotContains(response, 'rel="webmention"')
         self.assertNotContains(response, "analytics.antoniosantos.io")
-        self.assertNotContains(response, 'id="comment-actions"')
+        self.assertNotContains(response, 'id="feedback-actions"')
         post.refresh_from_db()
         self.assertEqual(post.title, "Draft post")
         self.assertEqual(post.body, "Original body")
@@ -1643,19 +1494,6 @@ class PostAdminTests(TestCase):
         mock_generate.assert_called_once_with(post)
 
     def test_admin_index_links_to_moderation_queue_with_pending_count(self):
-        post = Post.objects.create(
-            title="Live post",
-            slug="live-post",
-            body="Live body",
-            status=Post.PUBLISHED,
-            published_at=timezone.now(),
-        )
-        Comment.objects.create(
-            post=post,
-            author_name="Reader",
-            author_email="reader@example.com",
-            body="Please approve this.",
-        )
         Webmention.objects.create(
             source_url="https://source.example/reply/",
             target_url="https://example.com/live-post/",
@@ -1671,29 +1509,9 @@ class PostAdminTests(TestCase):
 
         self.assertContains(response, "Approval queue")
         self.assertContains(response, reverse("admin:moderation_queue"))
-        self.assertContains(response, "2 pending")
+        self.assertContains(response, "1 pending")
 
-    def test_moderation_queue_lists_pending_comments_and_webmentions(self):
-        post = Post.objects.create(
-            title="Live post",
-            slug="live-post",
-            body="Live body",
-            status=Post.PUBLISHED,
-            published_at=timezone.now(),
-        )
-        Comment.objects.create(
-            post=post,
-            author_name="Reader",
-            author_email="reader@example.com",
-            body="Pending comment",
-        )
-        Comment.objects.create(
-            post=post,
-            author_name="Approved reader",
-            author_email="approved@example.com",
-            body="Approved comment",
-            status=Comment.APPROVED,
-        )
+    def test_moderation_queue_lists_pending_webmentions(self):
         Webmention.objects.create(
             source_url="https://source.example/reply/",
             target_url="https://example.com/live-post/",
@@ -1715,47 +1533,9 @@ class PostAdminTests(TestCase):
 
         response = self.client.get(reverse("admin:moderation_queue"))
 
-        self.assertContains(response, "Pending comment")
         self.assertContains(response, "Pending mention")
-        self.assertContains(response, "1 comment and")
         self.assertContains(response, "1 webmention")
-        self.assertNotContains(response, "Approved comment")
         self.assertNotContains(response, "Approved mention")
-
-    def test_moderation_queue_can_approve_pending_comment(self):
-        post = Post.objects.create(
-            title="Live post",
-            slug="live-post",
-            body="Live body",
-            status=Post.PUBLISHED,
-            published_at=timezone.now(),
-        )
-        comment = Comment.objects.create(
-            post=post,
-            author_name="Reader",
-            author_email="reader@example.com",
-            body="Please approve this.",
-        )
-        user = get_user_model().objects.create_superuser(
-            username="admin",
-            email="admin@example.com",
-            password="password",
-        )
-        self.client.force_login(user)
-
-        response = self.client.post(
-            reverse("admin:moderation_queue"),
-            {
-                "item_type": "comment",
-                "item_id": str(comment.pk),
-                "action": "approve",
-            },
-        )
-
-        self.assertRedirects(response, reverse("admin:moderation_queue"))
-        comment.refresh_from_db()
-        self.assertEqual(comment.status, Comment.APPROVED)
-        self.assertIsNotNone(comment.approved_at)
 
     def test_moderation_queue_can_reject_pending_webmention(self):
         webmention = Webmention.objects.create(
