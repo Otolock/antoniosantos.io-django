@@ -10,7 +10,7 @@
   },
   "tasks": {
     "tailwind:build": "deno run -A @tailwindcss/cli -i ./theme/input.css -o ./blog/static/blog/style.css",
-    "tailwind:watch": "deno run -A @tailwindcss/cli -i ./theme/input.css -o ./blog/static/blog/style.css --watch"
+    "tailwind:watch": "deno run -A ./scripts/tailwind-watch.ts"
   },
   "allowScripts": ["npm:@parcel/watcher"]
 }
