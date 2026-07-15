@@ -231,6 +231,18 @@
     gap: 0.4rem;
 }
 
+.moderation-toolbar a.button:link,
+.moderation-toolbar a.button:visited {
+    background: var(--studio-surface);
+    border: 1px solid var(--studio-border);
+    color: var(--link-fg);
+}
+
+.moderation-toolbar a.button:hover {
+    background: color-mix(in srgb, var(--studio-blue) 8%, var(--body-bg));
+    border-color: color-mix(in srgb, var(--studio-blue) 40%, var(--studio-border));
+}
+
 .moderation-list {
     display: grid;
     gap: 0.8rem;
@@ -377,6 +389,17 @@
 .moderation-empty p {
     color: var(--body-quiet-color);
     margin: 0 0 1rem;
+}
+
+.moderation-empty a.button:link,
+.moderation-empty a.button:visited {
+    background: var(--studio-blue);
+    color: white;
+    font-size: 0.8rem;
+}
+
+.moderation-empty a.button:hover {
+    background: color-mix(in srgb, var(--studio-blue) 82%, black);
 }
 
 @media (max-width: 900px) {

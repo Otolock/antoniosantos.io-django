@@ -43,9 +43,9 @@ summary:focus-visible {
 
 #header {
     align-items: center;
-    background: var(--header-bg);
+    background: var(--studio-blue);
     border-bottom: 1px solid var(--studio-border);
-    color: var(--body-fg);
+    color: white;
     gap: 2rem;
     min-height: 4.25rem;
     padding: 0.7rem clamp(1rem, 3vw, 2rem);
@@ -57,7 +57,7 @@ summary:focus-visible {
 
 .studio-brand {
     align-items: center;
-    color: var(--body-fg) !important;
+    color: white !important;
     display: inline-flex;
     gap: 0.7rem;
     text-decoration: none;
@@ -89,7 +89,7 @@ summary:focus-visible {
 }
 
 .studio-brand small {
-    color: var(--body-quiet-color);
+    color: rgb(255 255 255 / 72%);
     font-size: 0.68rem;
     margin-top: 0.12rem;
 }
@@ -117,7 +117,7 @@ summary:focus-visible {
 #user-tools button {
     border: 0;
     border-radius: 0.45rem;
-    color: var(--body-quiet-color);
+    color: rgb(255 255 255 / 88%);
     font-size: 0.75rem;
     font-weight: 700;
     line-height: 1.2;
@@ -125,14 +125,24 @@ summary:focus-visible {
     text-decoration: none;
 }
 
+#header #user-tools a:link,
+#header #user-tools a:visited {
+    color: rgb(255 255 255 / 88%);
+}
+
 #user-tools a:hover,
 #user-tools button:hover {
-    background: var(--studio-surface);
-    color: var(--body-fg);
+    background: rgb(255 255 255 / 12%);
+    color: white;
+}
+
+#header #user-tools a:hover,
+#header #user-tools a:focus {
+    color: white;
 }
 
 .studio-quick-nav a:first-child {
-    background: var(--studio-blue);
+    background: rgb(255 255 255 / 12%);
     color: white !important;
 }
 
@@ -153,7 +163,7 @@ summary:focus-visible {
 }
 
 .studio-account-name {
-    color: var(--body-fg);
+    color: white;
     font-weight: 750;
     margin-right: 0.15rem;
 }
@@ -167,6 +177,10 @@ summary:focus-visible {
     height: 2rem;
     padding: 0.35rem;
     width: 2rem;
+}
+
+#user-tools .theme-toggle svg {
+    color: white;
 }
 
 nav[aria-label="Breadcrumbs"] {
@@ -312,6 +326,12 @@ div.breadcrumbs a {
     text-transform: uppercase;
 }
 
+#nav-sidebar .module.current-app .section,
+#nav-sidebar .module.current-app .section:link,
+#nav-sidebar .module.current-app .section:visited {
+    color: var(--body-quiet-color);
+}
+
 #nav-sidebar .module tr {
     background: transparent;
     border: 0;
@@ -341,12 +361,6 @@ div.breadcrumbs a {
     justify-content: center;
     margin-right: 0.2rem;
     width: 1.8rem;
-}
-
-#nav-sidebar .module td a::before {
-    content: "+";
-    font-size: 1rem;
-    font-weight: 500;
 }
 
 #nav-sidebar .module tr:hover th a,
@@ -489,6 +503,17 @@ input[type="button"],
 a.button {
     border-radius: 0.5rem;
     min-height: 2.35rem;
+}
+
+a.button:link,
+a.button:visited {
+    align-items: center;
+    display: inline-flex;
+    font-weight: 750;
+    justify-content: center;
+    line-height: 1.2;
+    padding: 0.6rem 0.8rem;
+    text-decoration: none !important;
 }
 
 /* Lists, search, filters */
@@ -701,13 +726,14 @@ a.button {
     padding: 1.1rem;
 }
 
-.studio-dashboard-card {
+.studio-dashboard-grid a.studio-dashboard-card:link,
+.studio-dashboard-grid a.studio-dashboard-card:visited {
     color: var(--body-fg);
     display: block;
-    text-decoration: none;
+    text-decoration: none !important;
 }
 
-.studio-dashboard-card:hover {
+.studio-dashboard-grid a.studio-dashboard-card:hover {
     border-color: color-mix(in srgb, var(--studio-blue) 45%, var(--studio-border));
     transform: translateY(-1px);
 }
