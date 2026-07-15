@@ -353,10 +353,19 @@ body.studio-focus .main.shifted {
     display: block;
 }
 
-body.studio-focus #content {
-    margin: 0 auto;
+body.studio-focus .main > #nav-sidebar + .content,
+body.studio-focus .main.shifted > #nav-sidebar + .content {
+    box-sizing: border-box;
+    margin-inline: auto;
     max-width: 78rem;
-    padding-top: 1rem;
+    width: calc(100% - 2rem);
+}
+
+body.studio-focus #content {
+    box-sizing: border-box;
+    margin-inline: auto;
+    padding: 1rem 0 7rem;
+    width: 100%;
 }
 
 body.studio-focus .writing-section {
