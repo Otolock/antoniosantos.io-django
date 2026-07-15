@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -17,6 +18,114 @@ from .services import (
     send_webmentions_for_post_async,
     verify_source_links_to_target,
 )
+
+TEST_STORAGES = {
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    }
+}
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class WebmentionAdminTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(self.user)
+
+    def test_received_list_is_a_scannable_inbox(self):
+        Webmention.objects.create(
+            source_url="https://mentioner.example/reply/",
+            target_url="https://example.com/live-post/",
+            title="A thoughtful reply",
+            author_name="Mentioner",
+            content="This is a useful contribution to the conversation.",
+        )
+
+        response = self.client.get(reverse("admin:webmentions_webmention_changelist"))
+
+        self.assertContains(response, "Webmention inbox")
+        self.assertContains(response, "A thoughtful reply")
+        self.assertContains(response, "Mentioner")
+        self.assertContains(response, "Open source")
+        self.assertContains(response, "Approve")
+        self.assertContains(response, "webmention-stat-tabs")
+
+    def test_quick_moderation_updates_status(self):
+        mention = Webmention.objects.create(
+            source_url="https://mentioner.example/reply/",
+            target_url="https://example.com/live-post/",
+        )
+        url = reverse(
+            "admin:webmentions_webmention_moderate",
+            args=[mention.pk, "approve"],
+        )
+
+        response = self.client.post(url)
+
+        self.assertRedirects(
+            response,
+            reverse("admin:webmentions_webmention_changelist"),
+        )
+        mention.refresh_from_db()
+        self.assertEqual(mention.status, Webmention.APPROVED)
+
+    def test_quick_moderation_requires_post(self):
+        mention = Webmention.objects.create(
+            source_url="https://mentioner.example/reply/",
+            target_url="https://example.com/live-post/",
+        )
+
+        response = self.client.get(
+            reverse(
+                "admin:webmentions_webmention_moderate",
+                args=[mention.pk, "spam"],
+            )
+        )
+
+        self.assertEqual(response.status_code, 405)
+        mention.refresh_from_db()
+        self.assertEqual(mention.status, Webmention.PENDING)
+
+    def test_sent_list_summarizes_delivery_health(self):
+        SentWebmention.objects.create(
+            source_url="https://example.com/live-post/",
+            target_url="https://elsewhere.example/article/",
+            endpoint_url="https://elsewhere.example/webmention/",
+            status=SentWebmention.SENT,
+            response_code=202,
+            attempts=1,
+        )
+
+        response = self.client.get(
+            reverse("admin:webmentions_sentwebmention_changelist")
+        )
+
+        self.assertContains(response, "Delivery log")
+        self.assertContains(response, "HTTP 202")
+        self.assertContains(response, "elsewhere.example")
+
+    def test_moderation_queue_can_mark_webmention_as_spam(self):
+        mention = Webmention.objects.create(
+            source_url="https://spam.example/reply/",
+            target_url="https://example.com/live-post/",
+        )
+
+        response = self.client.post(
+            reverse("admin:moderation_queue"),
+            {
+                "item_type": "webmention",
+                "item_id": mention.pk,
+                "action": "spam",
+            },
+        )
+
+        self.assertRedirects(response, reverse("admin:moderation_queue"))
+        mention.refresh_from_db()
+        self.assertEqual(mention.status, Webmention.SPAM)
 
 
 class ReceiveWebmentionTests(TestCase):

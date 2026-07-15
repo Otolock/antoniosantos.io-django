@@ -1,82 +1,94 @@
 {% extends "admin/base_site.html" %}
-{% load i18n %}
+{% load i18n static %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'webmentions/admin.css' %}">
+{% endblock %}
+
+{% block bodyclass %}{{ block.super }} moderation-inbox{% endblock %}
 
 {% block breadcrumbs %}
 <div class="breadcrumbs">
   <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
-  &rsaquo; Moderation queue
+  &rsaquo; Moderation inbox
+</div>
+{% endblock %}
+
+{% block content_title %}
+<div class="studio-page-heading moderation-heading">
+  <p class="studio-kicker">Conversation</p>
+  <h1>Moderation inbox</h1>
+  <p>
+    {% if pending_webmention_count %}
+      {{ pending_webmention_count }} webmention{{ pending_webmention_count|pluralize }} waiting for a decision.
+    {% else %}
+      You’re all caught up.
+    {% endif %}
+  </p>
 </div>
 {% endblock %}
 
 {% block content %}
-<div id="content-main">
-  <div class="module">
-    <h2>Pending approval</h2>
-    <p class="help">
-      {{ pending_webmention_count }} webmention{{ pending_webmention_count|pluralize }} waiting for review.
-    </p>
+<div id="content-main" class="moderation-layout">
+  <div class="moderation-toolbar">
+    <p><strong>{{ pending_webmention_count }}</strong> pending</p>
+    <div>
+      <a class="button" href="{% url 'admin:webmentions_webmention_changelist' %}">All received</a>
+      <a class="button" href="{% url 'admin:webmentions_sentwebmention_changelist' %}">Delivery log</a>
+    </div>
   </div>
 
   {% if queue_items %}
-    {% for item in queue_items %}
-      <div class="module aligned">
-        <h2>{{ item.label }}{% if item.author %} from {{ item.author }}{% endif %}</h2>
-        <div class="form-row">
-          <div>
-            <label>Received:</label>
-            <div class="readonly">{{ item.created_at }}</div>
-          </div>
-        </div>
-        {% if item.title %}
-          <div class="form-row">
+    <div class="moderation-list">
+      {% for item in queue_items %}
+        <article class="moderation-card">
+          <header>
             <div>
-              <label>Target:</label>
-              <div class="readonly">{{ item.title }}</div>
+              <span class="studio-status studio-status--pending">Needs review</span>
+              <h2>{% if item.title %}{{ item.title }}{% else %}Webmention from {{ item.author }}{% endif %}</h2>
+              <p>{{ item.author }} · {{ item.created_at|timesince }} ago</p>
             </div>
-          </div>
-        {% endif %}
-        {% if item.source_url %}
-          <div class="form-row">
+            <a href="{{ item.change_url }}">Full details</a>
+          </header>
+
+          {% if item.body %}
+            <blockquote>{{ item.body|linebreaksbr }}</blockquote>
+          {% else %}
+            <p class="moderation-no-content">This mention did not include any text.</p>
+          {% endif %}
+
+          <dl class="moderation-route">
             <div>
-              <label>Source:</label>
-              <div class="readonly"><a href="{{ item.source_url }}">{{ item.source_url }}</a></div>
+              <dt>Source</dt>
+              <dd><a href="{{ item.source_url }}" target="_blank" rel="noopener">{{ item.source_url }}</a></dd>
             </div>
-          </div>
-        {% endif %}
-        <div class="form-row">
-          <div>
-            <label>Destination:</label>
-            <div class="readonly">{{ item.target_url }}</div>
-          </div>
-        </div>
-        {% if item.body %}
-          <div class="form-row">
             <div>
-              <label>Content:</label>
-              <div class="readonly">{{ item.body|linebreaksbr }}</div>
+              <dt>Destination</dt>
+              <dd><a href="{{ item.target_url }}" target="_blank" rel="noopener">{{ item.target_url }}</a></dd>
             </div>
-          </div>
-        {% endif %}
-        <div class="submit-row">
-          <form method="post" style="display: inline;">
-            {% csrf_token %}
-            <input type="hidden" name="item_type" value="{{ item.type }}">
-            <input type="hidden" name="item_id" value="{{ item.id }}">
-            <button type="submit" class="default" name="action" value="approve">Approve</button>
-          </form>
-          <form method="post" style="display: inline;">
-            {% csrf_token %}
-            <input type="hidden" name="item_type" value="{{ item.type }}">
-            <input type="hidden" name="item_id" value="{{ item.id }}">
-            <button type="submit" name="action" value="reject">Reject</button>
-          </form>
-          <a class="button" href="{{ item.change_url }}">Edit</a>
-        </div>
-      </div>
-    {% endfor %}
+          </dl>
+
+          <footer class="moderation-actions">
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="item_type" value="{{ item.type }}">
+              <input type="hidden" name="item_id" value="{{ item.id }}">
+              <button type="submit" class="moderation-approve" name="action" value="approve">Approve</button>
+              <button type="submit" name="action" value="reject">Reject</button>
+              <button type="submit" class="moderation-spam" name="action" value="spam">Mark as spam</button>
+            </form>
+            <a href="{{ item.source_url }}" target="_blank" rel="noopener">Inspect source ↗</a>
+          </footer>
+        </article>
+      {% endfor %}
+    </div>
   {% else %}
-    <div class="module">
-      <p>No webmentions are pending approval.</p>
+    <div class="studio-empty-state moderation-empty">
+      <span aria-hidden="true">✓</span>
+      <h2>Inbox zero</h2>
+      <p>There are no Webmentions waiting for review.</p>
+      <a class="button" href="{% url 'admin:webmentions_webmention_changelist' %}">Browse received mentions</a>
     </div>
   {% endif %}
 </div>

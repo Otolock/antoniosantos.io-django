@@ -1956,9 +1956,9 @@ class PostAdminTests(TestCase):
 
         response = self.client.get(reverse("admin:index"))
 
-        self.assertContains(response, "Approval queue")
+        self.assertContains(response, "Moderation inbox")
         self.assertContains(response, reverse("admin:moderation_queue"))
-        self.assertContains(response, "1 pending")
+        self.assertContains(response, "1 item waiting")
 
     def test_moderation_queue_lists_pending_webmentions(self):
         Webmention.objects.create(

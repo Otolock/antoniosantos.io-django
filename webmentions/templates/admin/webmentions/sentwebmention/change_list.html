@@ -1,0 +1,26 @@
+{% extends "admin/change_list.html" %}
+{% load static %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'webmentions/admin.css' %}">
+{% endblock %}
+
+{% block content_title %}
+<div class="studio-page-heading webmention-page-heading">
+  <p class="studio-kicker">Delivery log</p>
+  <h1>Sent Webmentions</h1>
+  <p>See where outgoing mentions were delivered and why any failed.</p>
+</div>
+<nav class="webmention-stat-tabs" aria-label="Delivery status">
+  <a href="?"{% if not request.GET.status__exact %} class="current" aria-current="page"{% endif %}><strong>{{ total_deliveries }}</strong><span>All</span></a>
+  <a href="?status__exact=sent"{% if request.GET.status__exact == 'sent' %} class="current" aria-current="page"{% endif %}><strong>{{ sent_count }}</strong><span>Sent</span></a>
+  <a href="?status__exact=pending"{% if request.GET.status__exact == 'pending' %} class="current" aria-current="page"{% endif %}><strong>{{ pending_count }}</strong><span>Pending</span></a>
+  <a href="?status__exact=failed"{% if request.GET.status__exact == 'failed' %} class="current" aria-current="page"{% endif %}><strong>{{ failed_count }}</strong><span>Failed</span></a>
+  <a href="?status__exact=no_endpoint"{% if request.GET.status__exact == 'no_endpoint' %} class="current" aria-current="page"{% endif %}><strong>{{ no_endpoint_count }}</strong><span>No endpoint</span></a>
+</nav>
+{% endblock %}
+
+{% block object-tools-items %}
+  <li><a href="{% url 'admin:webmentions_webmention_changelist' %}" class="viewlink">Received mentions</a></li>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "admin/change_list.html" %}
+{% load static %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'webmentions/admin.css' %}">
+{% endblock %}
+
+{% block content_title %}
+<div class="studio-page-heading webmention-page-heading">
+  <p class="studio-kicker">Conversation</p>
+  <h1>Webmention inbox</h1>
+  <p>Review replies and references before they appear on the site.</p>
+</div>
+<nav class="webmention-stat-tabs" aria-label="Webmention status">
+  <a href="?"{% if not request.GET.status__exact %} class="current" aria-current="page"{% endif %}><strong>{{ total_webmentions }}</strong><span>All</span></a>
+  <a href="?status__exact=pending"{% if request.GET.status__exact == 'pending' %} class="current" aria-current="page"{% endif %}><strong>{{ pending_count }}</strong><span>Inbox</span></a>
+  <a href="?status__exact=approved"{% if request.GET.status__exact == 'approved' %} class="current" aria-current="page"{% endif %}><strong>{{ approved_count }}</strong><span>Approved</span></a>
+  <a href="?status__exact=rejected"{% if request.GET.status__exact == 'rejected' %} class="current" aria-current="page"{% endif %}><strong>{{ rejected_count }}</strong><span>Rejected</span></a>
+  <a href="?status__exact=spam"{% if request.GET.status__exact == 'spam' %} class="current" aria-current="page"{% endif %}><strong>{{ spam_count }}</strong><span>Spam</span></a>
+</nav>
+{% endblock %}
+
+{% block object-tools-items %}
+  <li><a href="{% url 'admin:moderation_queue' %}" class="viewlink">Review inbox</a></li>
+{% endblock %}

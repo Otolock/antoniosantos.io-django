@@ -9,28 +9,33 @@
 
 {% block nav-breadcrumbs %}{% endblock %}
 
-{% block nav-sidebar %}{% endblock %}
+{% block content_title %}
+<div class="studio-dashboard-heading">
+  <p class="studio-kicker">Publishing desk</p>
+  <h1>Welcome back{% if user.first_name %}, {{ user.first_name }}{% endif %}</h1>
+  <p>Write, publish, and keep the conversation healthy.</p>
+</div>
+{% endblock %}
 
 {% block content %}
+<div class="studio-dashboard-grid">
+  <a class="studio-dashboard-card" href="{% url 'admin:blog_post_add' %}">
+    <span>Write</span>
+    <strong>New post</strong>
+    <small>Open the full Markdown editor</small>
+  </a>
+  <a class="studio-dashboard-card" href="{% url 'admin:blog_note_quick' %}">
+    <span>Capture</span>
+    <strong>Quick note</strong>
+    <small>Publish a short thought quickly</small>
+  </a>
+  <a class="studio-dashboard-card" href="{% url 'admin:moderation_queue' %}">
+    <span>Conversation</span>
+    <strong>Moderation inbox</strong>
+    <small>{{ pending_moderation_count }} item{{ pending_moderation_count|pluralize }} waiting</small>
+  </a>
+</div>
 <div id="content-main" class="app-list">
-  <div class="module">
-    <table>
-      <caption>
-        <a href="{% url 'admin:moderation_queue' %}" class="section">Moderation</a>
-      </caption>
-      <tbody>
-        <tr>
-          <th scope="row">
-            <a href="{% url 'admin:moderation_queue' %}">Approval queue</a>
-          </th>
-          <td>{{ pending_moderation_count }} pending</td>
-          <td>
-            <a href="{% url 'admin:moderation_queue' %}" class="changelink">Review</a>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
   {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
 </div>
 {% endblock %}

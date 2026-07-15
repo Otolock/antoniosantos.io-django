@@ -40,7 +40,6 @@ def moderation_queue_view(request):
     context = {
         **admin.site.each_context(request),
         "title": "Moderation queue",
-        "subtitle": "Webmentions pending approval",
         "queue_items": queue_items,
         "pending_webmention_count": pending_webmentions.count(),
     }
@@ -52,18 +51,20 @@ def _moderate_queue_item(request):
     item_id = request.POST.get("item_id")
     action = request.POST.get("action")
 
-    if action not in {"approve", "reject"}:
+    if action not in {"approve", "reject", "spam"}:
         raise PermissionDenied
 
     if item_type == "webmention":
         if not request.user.has_perm("webmentions.change_webmention"):
             raise PermissionDenied
         webmention = get_object_or_404(Webmention, pk=item_id, status=Webmention.PENDING)
-        webmention.status = (
-            Webmention.APPROVED if action == "approve" else Webmention.REJECTED
-        )
+        statuses = {
+            "approve": (Webmention.APPROVED, "Approved"),
+            "reject": (Webmention.REJECTED, "Rejected"),
+            "spam": (Webmention.SPAM, "Marked as spam"),
+        }
+        webmention.status, action_label = statuses[action]
         webmention.save(update_fields=["status"])
-        action_label = "Approved" if action == "approve" else "Rejected"
         messages.success(
             request,
             f"{action_label} webmention from {webmention.source_url}.",
@@ -92,6 +93,13 @@ def _webmention_queue_item(webmention):
 
 
 _original_admin_get_urls = admin.site.get_urls
+_original_admin_each_context = admin.site.each_context
+
+
+def _admin_each_context(request):
+    context = _original_admin_each_context(request)
+    context["pending_moderation_count"] = pending_moderation_count()
+    return context
 
 
 def _admin_get_urls():
@@ -116,6 +124,7 @@ def _admin_index(request, extra_context=None):
 
 admin.site.get_urls = _admin_get_urls
 admin.site.index = _admin_index
+admin.site.each_context = _admin_each_context
 admin.site.index_template = "admin/moderation_index.html"
 admin.site.site_header = "Antonio's Studio"
 admin.site.site_title = "Antonio's Studio"

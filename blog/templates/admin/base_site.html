@@ -1,0 +1,57 @@
+{% extends "admin/base.html" %}
+{% load i18n static %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:"Studio" }}{% endblock %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'blog/admin-shell.css' %}">
+{% endblock %}
+
+{% block extrahead %}
+  {{ block.super }}
+  <script src="{% static 'blog/admin-shell.js' %}" defer></script>
+{% endblock %}
+
+{% block branding %}
+  <a class="studio-brand" href="{% url 'admin:index' %}" aria-label="Studio home">
+    <span class="studio-brand-mark" aria-hidden="true">AS</span>
+    <span>
+      <strong>Antonio’s Studio</strong>
+      <small>Publishing admin</small>
+    </span>
+  </a>
+{% endblock %}
+
+{% block usertools %}
+  {% if has_permission %}
+    <div id="user-tools">
+      <nav class="studio-quick-nav" aria-label="Quick actions">
+        {% if perms.blog.add_post %}
+          <a href="{% url 'admin:blog_post_add' %}">New post</a>
+        {% endif %}
+        {% if perms.blog.add_note %}
+          <a href="{% url 'admin:blog_note_quick' %}">Quick note</a>
+        {% endif %}
+        {% if perms.webmentions.view_webmention %}
+          <a class="studio-inbox-link" href="{% url 'admin:moderation_queue' %}">
+            Inbox
+            {% if pending_moderation_count %}<span>{{ pending_moderation_count }}</span>{% endif %}
+          </a>
+        {% endif %}
+        {% if site_url %}<a href="{{ site_url }}" target="_blank" rel="noopener">View site</a>{% endif %}
+      </nav>
+      <div class="studio-account">
+        <span class="studio-account-name">{% firstof user.get_short_name user.get_username %}</span>
+        {% if user.has_usable_password %}<a href="{% url 'admin:password_change' %}">Account</a>{% endif %}
+        <form id="logout-form" method="post" action="{% url 'admin:logout' %}">
+          {% csrf_token %}
+          <button type="submit">Log out</button>
+        </form>
+        {% include "admin/color_theme_toggle.html" %}
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
