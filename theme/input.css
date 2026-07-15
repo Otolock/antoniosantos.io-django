@@ -4,8 +4,25 @@
 @source "../blog/templates";
 
 @layer base {
+  :root {
+    /* A daylight palette: parchment, deep green ink, and sea-glass accents. */
+    --color-cyan-400: #f5efe5;
+    --color-blue-50: #d8e7df;
+    --color-blue-400: #24756d;
+    --color-gray-900: #183b3a;
+    --color-zinc-50: #284441;
+    --color-zinc-100: #365753;
+    --color-zinc-200: #617570;
+    --color-zinc-300: #82938e;
+    --color-zinc-700: #c9d5cc;
+    --color-zinc-950: #fffaf2;
+    --color-white: #fffdf8;
+    --color-accent: #1d5b59;
+    --color-accent-soft: #dceae2;
+  }
+
   html {
-    background: var(--color-zinc-900);
+    background: var(--color-cyan-400);
     overflow-x: hidden;
   }
 
@@ -20,7 +37,7 @@
   }
 
   :where(a, button, input):focus-visible {
-    outline: 2px solid var(--color-blue-400);
+    outline: 2px solid var(--color-accent);
     outline-offset: 3px;
   }
 }
@@ -33,7 +50,7 @@
     padding-block: calc(var(--spacing) * 8);
     flex-direction: column;
     gap: calc(var(--spacing) * 6);
-    background: var(--color-zinc-900);
+    background: var(--color-cyan-400);
     color: var(--color-zinc-50);
     font-family: var(--font-sans);
   }
@@ -45,7 +62,7 @@
   }
 
   .site-title {
-    color: var(--color-white);
+    color: var(--color-gray-900);
     font-size: var(--text-2xl);
     font-weight: var(--font-weight-bold);
     letter-spacing: 0;
@@ -80,7 +97,7 @@
   .text-link:hover,
   .post-list-title a:hover,
   .post-reply a:hover {
-    color: var(--color-white);
+    color: var(--color-gray-900);
   }
 
   .site-main {
@@ -98,9 +115,9 @@
   }
 
   .message {
-    border-left: 4px solid var(--color-blue-400);
+    border-left: 4px solid var(--color-accent);
     background: var(--color-zinc-950);
-    color: var(--color-zinc-50);
+    color: var(--color-zinc-100);
     font-size: var(--text-sm);
     padding: calc(var(--spacing) * 3) calc(var(--spacing) * 4);
   }
@@ -114,7 +131,7 @@
   }
 
   .page-heading {
-    color: var(--color-white);
+    color: var(--color-gray-900);
     font-size: var(--text-2xl);
     font-weight: var(--font-weight-bold);
     letter-spacing: 0;
@@ -123,7 +140,7 @@
   }
 
   .section-heading {
-    color: var(--color-white);
+    color: var(--color-gray-900);
     font-size: var(--text-lg);
     font-weight: var(--font-weight-bold);
     letter-spacing: 0.08em;
@@ -166,7 +183,7 @@
   }
 
   .note-date a:hover {
-    color: var(--color-white);
+    color: var(--color-gray-900);
   }
 
   .note-prose {
@@ -195,7 +212,7 @@
   }
 
   .post-reply {
-    border-left: 3px solid var(--color-blue-400);
+    border-left: 3px solid var(--color-accent);
     border-radius: 0.375rem;
     background: var(--color-zinc-950);
     color: var(--color-zinc-200);
@@ -214,7 +231,7 @@
   }
 
   .post-reply-link:hover {
-    color: var(--color-white);
+    color: var(--color-gray-900);
   }
 
   .post-entry {
@@ -225,7 +242,7 @@
   }
 
   .note-entry {
-    border-left: 3px solid var(--color-blue-400);
+    border-left: 3px solid var(--color-accent);
     border-radius: 0.375rem;
     background: var(--color-zinc-950);
     padding: calc(var(--spacing) * 5);
@@ -238,7 +255,7 @@
   }
 
   .post-title {
-    color: var(--color-white);
+    color: var(--color-gray-900);
     font-size: var(--text-2xl);
     font-weight: var(--font-weight-bold);
     letter-spacing: 0;
@@ -269,7 +286,7 @@
 
   .tag-pill:hover {
     border-color: var(--color-blue-400);
-    color: var(--color-white);
+    color: var(--color-gray-900);
   }
 
   .now-page {
@@ -327,7 +344,7 @@
 
   .feedback-actions a:hover,
   .upvote-button:hover {
-    color: var(--color-white);
+    color: var(--color-gray-900);
   }
 
   .upvote-button:disabled {
@@ -365,8 +382,8 @@
   }
 
   .rss-feed-card:hover {
-    border-color: var(--color-blue-400);
-    background: color-mix(in oklab, var(--color-zinc-950) 80%, var(--color-blue-400));
+    border-color: var(--color-accent);
+    background: color-mix(in oklab, var(--color-zinc-950) 88%, var(--color-accent-soft));
   }
 
   .rss-feed-card-title {
@@ -438,7 +455,7 @@
   }
 
   .indieauth-consent strong {
-    color: var(--color-white);
+    color: var(--color-gray-900);
   }
 
   .indieauth-client {
@@ -457,7 +474,7 @@
   }
 
   .indieauth-client-name {
-    color: var(--color-white);
+    color: var(--color-gray-900);
     font-size: var(--text-xl);
     font-weight: var(--font-weight-bold);
     line-height: 1.25;
@@ -471,7 +488,7 @@
   }
 
   .indieauth-client a:hover {
-    color: var(--color-white);
+    color: var(--color-gray-900);
   }
 
   .indieauth-client-id,
@@ -518,19 +535,19 @@
 
   .indieauth-actions button:hover {
     border-color: var(--color-blue-400);
-    color: var(--color-white);
+    color: var(--color-gray-900);
   }
 
   .indieauth-actions .btn-primary {
-    border-color: var(--color-blue-400);
-    background: var(--color-blue-400);
-    color: var(--color-zinc-950);
+    border-color: var(--color-accent);
+    background: var(--color-accent);
+    color: var(--color-white);
   }
 
   .indieauth-actions .btn-primary:hover {
-    background: var(--color-white);
-    border-color: var(--color-white);
-    color: var(--color-zinc-950);
+    background: var(--color-gray-900);
+    border-color: var(--color-gray-900);
+    color: var(--color-white);
   }
 
   @media (min-width: 40rem) {
@@ -597,6 +614,20 @@
 }
 
 @layer utilities {
+  .note-prose {
+    --tw-prose-body: var(--color-zinc-50);
+    --tw-prose-headings: var(--color-gray-900);
+    --tw-prose-links: var(--color-blue-400);
+    --tw-prose-bold: var(--color-gray-900);
+    --tw-prose-counters: var(--color-zinc-200);
+    --tw-prose-bullets: var(--color-zinc-200);
+    --tw-prose-quotes: var(--color-gray-900);
+    --tw-prose-quote-borders: var(--color-zinc-700);
+    --tw-prose-code: var(--color-gray-900);
+    --tw-prose-pre-code: var(--color-zinc-50);
+    --tw-prose-pre-bg: var(--color-cyan-400);
+  }
+
   .post-prose {
     --tw-prose-body: var(--color-zinc-100);
     --tw-prose-headings: var(--color-zinc-50);
@@ -612,12 +643,12 @@
     --tw-prose-kbd: var(--color-white);
     --tw-prose-code: var(--color-zinc-50);
     --tw-prose-pre-code: var(--color-zinc-100);
-    --tw-prose-pre-bg: color-mix(in oklab, var(--color-zinc-900) 65%, black);
+    --tw-prose-pre-bg: color-mix(in oklab, var(--color-zinc-950) 92%, var(--color-zinc-700));
     --tw-prose-th-borders: var(--color-zinc-700);
     --tw-prose-td-borders: color-mix(in oklab, var(--color-zinc-700) 70%, transparent);
   }
 
   .post-prose :where(a):hover {
-    color: var(--color-white);
+    color: var(--color-gray-900);
   }
 }
