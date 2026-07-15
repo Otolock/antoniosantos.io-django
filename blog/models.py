@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
@@ -256,6 +257,38 @@ class Comment(models.Model):
     @property
     def is_approved(self):
         return self.status == self.APPROVED
+
+
+class ContentRevision(models.Model):
+    POST = "post"
+    NOTE = "note"
+    CONTENT_TYPE_CHOICES = [
+        (POST, "Post"),
+        (NOTE, "Note"),
+    ]
+
+    content_type = models.CharField(max_length=20, choices=CONTENT_TYPE_CHOICES)
+    object_id = models.PositiveBigIntegerField()
+    object_label = models.CharField(max_length=250)
+    snapshot = models.JSONField()
+    reason = models.CharField(max_length=100, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="content_revisions",
+    )
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
+        indexes = [
+            models.Index(fields=["content_type", "object_id", "created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.object_label} at {self.created_at:%Y-%m-%d %H:%M}"
 
 
 class PostMedia(models.Model):

@@ -12,7 +12,8 @@ from unittest.mock import patch
 from . import llm
 from .admin import PostAdmin
 from .feeds import LEGACY_RSS_GUID_SLUGS
-from .models import Note, Post, PostMedia, Tag
+from .models import ContentRevision, Note, Post, PostMedia, Tag
+from .revisions import create_revision
 from webmentions.models import Webmention
 
 
@@ -940,6 +941,82 @@ class PostMediaTests(TestCase):
 
 @override_settings(STORAGES=TEST_STORAGES)
 class PostAdminTests(TestCase):
+    def test_admin_save_creates_a_restorable_revision(self):
+        post = Post.objects.create(
+            title="Revision post",
+            slug="revision-post",
+            body="Original body",
+            status=Post.DRAFT,
+        )
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("admin:blog_post_change", args=[post.pk]),
+            {
+                "title": post.title,
+                "slug": post.slug,
+                "body": "Updated body",
+                "description": "",
+                "upvotes_count": "0",
+                "status": Post.DRAFT,
+                "published_at_0": "",
+                "published_at_1": "",
+                "_continue": "Save changes",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        revision = ContentRevision.objects.get(
+            content_type=ContentRevision.POST,
+            object_id=post.pk,
+        )
+        self.assertEqual(revision.snapshot["body"], "Updated body")
+        self.assertEqual(revision.created_by, user)
+
+    def test_revision_history_can_restore_an_older_body(self):
+        post = Post.objects.create(
+            title="Revision post",
+            slug="revision-post",
+            body="Original body",
+            status=Post.DRAFT,
+        )
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        original_revision = create_revision(post, user, "Original")
+        post.body = "Updated body"
+        post.save()
+        create_revision(post, user, "Updated")
+        self.client.force_login(user)
+
+        history_response = self.client.get(
+            reverse("admin:blog_post_revisions", args=[post.pk])
+        )
+        self.assertContains(history_response, "Previous version")
+        self.assertContains(history_response, "+Updated body")
+
+        response = self.client.post(
+            reverse(
+                "admin:blog_post_revision_restore",
+                args=[post.pk, original_revision.pk],
+            )
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("admin:blog_post_change", args=[post.pk]),
+        )
+        post.refresh_from_db()
+        self.assertEqual(post.body, "Original body")
+        self.assertEqual(ContentRevision.objects.filter(object_id=post.pk).count(), 3)
+
     def test_post_and_note_editors_use_the_mobile_markdown_writing_shell(self):
         user = get_user_model().objects.create_superuser(
             username="admin",
@@ -966,6 +1043,74 @@ class PostAdminTests(TestCase):
                 self.assertContains(response, "Discard edits")
                 self.assertContains(response, "data-editor-status")
                 self.assertContains(response, "data-editor-save-state")
+                self.assertContains(response, "data-draft-recovery")
+                self.assertContains(response, "data-render-url")
+                self.assertContains(response, "data-upload-url")
+
+    def test_inline_markdown_preview_is_sanitized(self):
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("admin:blog_post_render_markdown"),
+            {"body": "Hello **world** <script>alert(1)</script>"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("<strong>world</strong>", response.json()["html"])
+        self.assertNotIn("<script", response.json()["html"])
+
+    def test_editor_can_upload_an_image_and_receive_markdown(self):
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        with tempfile.TemporaryDirectory() as media_root:
+            with self.settings(MEDIA_ROOT=media_root):
+                response = self.client.post(
+                    reverse("admin:blog_postmedia_editor_upload"),
+                    {
+                        "file": SimpleUploadedFile(
+                            "pasted-image.png",
+                            b"fake image bytes",
+                            content_type="image/png",
+                        )
+                    },
+                )
+
+        self.assertEqual(response.status_code, 200)
+        media = PostMedia.objects.get()
+        self.assertEqual(media.title, "pasted-image")
+        self.assertEqual(response.json()["snippet"], media.markdown_snippet)
+
+    def test_editor_inline_upload_rejects_non_images(self):
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("admin:blog_postmedia_editor_upload"),
+            {
+                "file": SimpleUploadedFile(
+                    "notes.txt",
+                    b"not an image",
+                    content_type="text/plain",
+                )
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(PostMedia.objects.count(), 0)
 
     def test_post_and_note_lists_use_the_publishing_desk_layout(self):
         user = get_user_model().objects.create_superuser(
@@ -1022,6 +1167,140 @@ class PostAdminTests(TestCase):
 
         self.assertContains(response, "Scheduled")
         self.assertContains(response, 'class="content-status content-status--scheduled"')
+
+    def test_content_list_includes_quick_actions(self):
+        post = Post.objects.create(
+            title="Quick action post",
+            slug="quick-action-post",
+            body="Body",
+            status=Post.DRAFT,
+        )
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("admin:blog_post_changelist"))
+
+        self.assertContains(response, "Preview")
+        self.assertContains(response, "Duplicate")
+        self.assertContains(response, "Publish")
+        self.assertContains(
+            response,
+            reverse("admin:blog_post_toggle_publish", args=[post.pk]),
+        )
+
+    @patch("blog.admin.send_webmentions_for_post_async")
+    def test_quick_publish_and_unpublish_toggle(self, send_webmentions):
+        post = Post.objects.create(
+            title="Toggle post",
+            slug="toggle-post",
+            body="Body",
+            status=Post.DRAFT,
+        )
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+        url = reverse("admin:blog_post_toggle_publish", args=[post.pk])
+
+        self.client.post(url)
+        post.refresh_from_db()
+        self.assertEqual(post.status, Post.PUBLISHED)
+        self.assertTrue(post.is_published)
+        send_webmentions.assert_called_once_with(post)
+
+        self.client.post(url)
+        post.refresh_from_db()
+        self.assertEqual(post.status, Post.DRAFT)
+        self.assertIsNone(post.published_at)
+        self.assertEqual(
+            ContentRevision.objects.filter(object_id=post.pk).count(),
+            2,
+        )
+
+    def test_duplicate_post_opens_a_prefilled_unsaved_copy(self):
+        post = Post.objects.create(
+            title="Original post",
+            slug="original-post",
+            body="Original body",
+            description="Original description",
+            status=Post.PUBLISHED,
+            published_at=timezone.now(),
+        )
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(
+            reverse("admin:blog_post_add"),
+            {"duplicate": post.pk},
+        )
+
+        form = response.context["adminform"].form
+        self.assertEqual(form.initial["title"], "Copy of Original post")
+        self.assertEqual(form.initial["slug"], "original-post-copy")
+        self.assertEqual(form.initial["body"], "Original body")
+        self.assertEqual(form.initial["status"], Post.DRAFT)
+        self.assertIsNone(form.initial["published_at"])
+
+    def test_saved_note_can_be_previewed_with_get(self):
+        note = Note.objects.create(body="Preview this note", status=Note.DRAFT)
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(
+            reverse("admin:blog_note_preview", args=[note.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Preview this note")
+        self.assertContains(response, "Preview only")
+
+    def test_quick_note_page_publishes_a_tagged_note(self):
+        tag = Tag.objects.create(name="Now", slug="now-tag")
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        page = self.client.get(reverse("admin:blog_note_quick"))
+        self.assertContains(page, "Quick note")
+        self.assertContains(page, 'data-markdown-editor="true"')
+
+        before_publish = timezone.now()
+        response = self.client.post(
+            reverse("admin:blog_note_quick"),
+            {"body": "Captured from my phone.", "tags": [tag.pk]},
+        )
+
+        note = Note.objects.get()
+        self.assertRedirects(
+            response,
+            reverse("admin:blog_note_change", args=[note.pk]),
+        )
+        self.assertEqual(note.status, Note.PUBLISHED)
+        self.assertGreaterEqual(note.published_at, before_publish)
+        self.assertEqual(list(note.tags.all()), [tag])
+        self.assertTrue(
+            ContentRevision.objects.filter(
+                content_type=ContentRevision.NOTE,
+                object_id=note.pk,
+            ).exists()
+        )
 
     def test_note_preview_renders_form_values_without_saving(self):
         user = get_user_model().objects.create_superuser(

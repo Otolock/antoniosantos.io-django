@@ -3,14 +3,20 @@ from django.contrib import messages
 from django import forms
 from django.core.exceptions import PermissionDenied
 from django.db.models import Case, F, IntegerField, TextField, Value, When
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils import timezone
+from markdown import markdown
+from pathlib import Path
+from urllib.parse import urlencode
 
+from .html import sanitize_html
+from .forms import QuickNoteForm
 from .llm import DescriptionGenerationError, generate_post_description
-from .models import Note, Post, PostMedia, Subscriber, Tag
+from .models import ContentRevision, Note, Post, PostMedia, Subscriber, Tag
+from .revisions import create_revision, restore_revision, revision_diff
 from webmentions.models import Webmention
 from webmentions.services import send_webmentions_for_post_async
 
@@ -139,7 +145,203 @@ class MarkdownEditorAdminMixin:
         context["available_media"] = PostMedia.objects.order_by("-created_at", "-pk")[
             :25
         ]
+        original = context.get("original")
+        if original:
+            context["revision_history_url"] = reverse(
+                f"admin:{self.opts.app_label}_{self.opts.model_name}_revisions",
+                args=[original.pk],
+            )
+        context["markdown_render_url"] = reverse(
+            f"admin:{self.opts.app_label}_{self.opts.model_name}_render_markdown"
+        )
+        context["inline_media_upload_url"] = reverse(
+            "admin:blog_postmedia_editor_upload"
+        )
         return super().render_change_form(request, context, *args, **kwargs)
+
+    def get_urls(self):
+        urls = super().get_urls()
+        app_label = self.opts.app_label
+        model_name = self.opts.model_name
+        custom_urls = [
+            path(
+                "render-markdown/",
+                self.admin_site.admin_view(self.render_markdown_view),
+                name=f"{app_label}_{model_name}_render_markdown",
+            ),
+            path(
+                "<path:object_id>/revisions/",
+                self.admin_site.admin_view(self.revision_history_view),
+                name=f"{app_label}_{model_name}_revisions",
+            ),
+            path(
+                "<path:object_id>/toggle-publish/",
+                self.admin_site.admin_view(self.toggle_publish_view),
+                name=f"{app_label}_{model_name}_toggle_publish",
+            ),
+            path(
+                "<path:object_id>/revisions/<int:revision_id>/restore/",
+                self.admin_site.admin_view(self.restore_revision_view),
+                name=f"{app_label}_{model_name}_revision_restore",
+            ),
+        ]
+        return custom_urls + urls
+
+    def get_changeform_initial_data(self, request):
+        initial = super().get_changeform_initial_data(request)
+        duplicate_id = request.GET.get("duplicate")
+        if not duplicate_id:
+            return initial
+        original = self.get_object(request, duplicate_id)
+        if original is None or not self.has_view_or_change_permission(request, original):
+            return initial
+
+        duplicate = {
+            "body": original.body,
+            "tags": list(original.tags.values_list("pk", flat=True)),
+            "status": original.DRAFT,
+            "published_at": None,
+        }
+        if isinstance(original, Post):
+            base_slug = f"{original.slug}-copy"[: original._meta.get_field("slug").max_length]
+            slug = base_slug
+            suffix = 2
+            while Post.objects.filter(slug=slug).exists():
+                suffix_text = f"-{suffix}"
+                slug = f"{base_slug[: original._meta.get_field('slug').max_length - len(suffix_text)]}{suffix_text}"
+                suffix += 1
+            duplicate.update(
+                {
+                    "title": f"Copy of {original.title}"[:200],
+                    "slug": slug,
+                    "description": original.description,
+                    "reply_to_url": original.reply_to_url,
+                    "reply_to_title": original.reply_to_title,
+                    "upvotes_count": 0,
+                }
+            )
+        initial.update(duplicate)
+        return initial
+
+    def render_markdown_view(self, request):
+        if request.method != "POST":
+            return JsonResponse({"error": "POST required."}, status=405)
+        if not self.has_view_or_change_permission(request):
+            raise PermissionDenied
+        body = request.POST.get("body", "")
+        return JsonResponse({"html": sanitize_html(markdown(body))})
+
+    def save_related(self, request, form, formsets, change):
+        super().save_related(request, form, formsets, change)
+        create_revision(form.instance, request.user, reason="Saved in editor")
+
+    def revision_history_view(self, request, object_id):
+        obj = self.get_object(request, object_id)
+        if obj is None:
+            self.message_user(request, "Content not found.", messages.ERROR)
+            return HttpResponseRedirect(
+                reverse(f"admin:{self.opts.app_label}_{self.opts.model_name}_changelist")
+            )
+        if not self.has_view_or_change_permission(request, obj):
+            raise PermissionDenied
+
+        revisions = list(
+            ContentRevision.objects.filter(
+                content_type=self.opts.model_name,
+                object_id=obj.pk,
+            ).select_related("created_by")
+        )
+        revision_rows = []
+        for index, revision in enumerate(revisions):
+            older = revisions[index + 1] if index + 1 < len(revisions) else None
+            revision_rows.append(
+                {
+                    "revision": revision,
+                    "diff": revision_diff(older, revision),
+                    "restore_url": reverse(
+                        f"admin:{self.opts.app_label}_{self.opts.model_name}_revision_restore",
+                        args=[obj.pk, revision.pk],
+                    ),
+                }
+            )
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": f"Revisions: {obj}",
+            "opts": self.opts,
+            "original": obj,
+            "revision_rows": revision_rows,
+            "change_url": reverse(
+                f"admin:{self.opts.app_label}_{self.opts.model_name}_change",
+                args=[obj.pk],
+            ),
+        }
+        return render(request, "admin/blog/content_revisions.html", context)
+
+    def restore_revision_view(self, request, object_id, revision_id):
+        obj = self.get_object(request, object_id)
+        if obj is None:
+            self.message_user(request, "Content not found.", messages.ERROR)
+            return HttpResponseRedirect(
+                reverse(f"admin:{self.opts.app_label}_{self.opts.model_name}_changelist")
+            )
+        if not self.has_change_permission(request, obj):
+            raise PermissionDenied
+
+        change_url = reverse(
+            f"admin:{self.opts.app_label}_{self.opts.model_name}_change",
+            args=[obj.pk],
+        )
+        if request.method != "POST":
+            self.message_user(request, "Use the Restore button on the revisions page.", messages.WARNING)
+            return HttpResponseRedirect(change_url)
+
+        revision = get_object_or_404(
+            ContentRevision,
+            pk=revision_id,
+            content_type=self.opts.model_name,
+            object_id=obj.pk,
+        )
+        restore_revision(obj, revision)
+        create_revision(
+            obj,
+            request.user,
+            reason=f"Restored revision from {revision.created_at:%Y-%m-%d %H:%M}",
+        )
+        self.message_user(request, "Restored the selected revision.", messages.SUCCESS)
+        return HttpResponseRedirect(change_url)
+
+    def toggle_publish_view(self, request, object_id):
+        obj = self.get_object(request, object_id)
+        if obj is None:
+            self.message_user(request, "Content not found.", messages.ERROR)
+            return HttpResponseRedirect(
+                reverse(f"admin:{self.opts.app_label}_{self.opts.model_name}_changelist")
+            )
+        if not self.has_change_permission(request, obj):
+            raise PermissionDenied
+        if request.method != "POST":
+            self.message_user(request, "Use the list action to change publication status.", messages.WARNING)
+            return HttpResponseRedirect(
+                reverse(f"admin:{self.opts.app_label}_{self.opts.model_name}_changelist")
+            )
+
+        if obj.status == obj.PUBLISHED:
+            obj.status = obj.DRAFT
+            obj.published_at = None
+            action = "Unpublished"
+        else:
+            obj.status = obj.PUBLISHED
+            obj.published_at = timezone.now()
+            action = "Published"
+        obj.save()
+        create_revision(obj, request.user, reason=f"{action} from content list")
+        if isinstance(obj, Post) and obj.is_published:
+            send_webmentions_for_post_async(obj)
+        self.message_user(request, f"{action} {obj}.", messages.SUCCESS)
+        return HttpResponseRedirect(
+            reverse(f"admin:{self.opts.app_label}_{self.opts.model_name}_changelist")
+        )
 
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
@@ -167,6 +369,39 @@ class MarkdownEditorAdminMixin:
             '<span class="content-status content-status--{}">{}</span>',
             status,
             label,
+        )
+
+    @admin.display(description="Quick actions")
+    def quick_actions(self, obj):
+        app_label = self.opts.app_label
+        model_name = self.opts.model_name
+        preview_url = reverse(f"admin:{app_label}_{model_name}_preview", args=[obj.pk])
+        add_url = reverse(f"admin:{app_label}_{model_name}_add")
+        duplicate_url = f"{add_url}?{urlencode({'duplicate': obj.pk})}"
+        toggle_url = reverse(
+            f"admin:{app_label}_{model_name}_toggle_publish",
+            args=[obj.pk],
+        )
+        toggle_label = "Unpublish" if obj.status == obj.PUBLISHED else "Publish"
+        view_link = ""
+        if obj.is_published:
+            view_link = format_html(
+                '<a href="{}" target="_blank" rel="noopener">View</a>',
+                obj.get_absolute_url(),
+            )
+        return format_html(
+            '<details class="content-quick-menu"><summary>Actions</summary>'
+            '<span class="content-quick-actions">'
+            '<a href="{}" target="_blank" rel="noopener">Preview</a>'
+            '{}'
+            '<a href="{}">Duplicate</a>'
+            '<button type="submit" formmethod="post" formaction="{}">{}</button>'
+            "</span></details>",
+            preview_url,
+            view_link,
+            duplicate_url,
+            toggle_url,
+            toggle_label,
         )
 
 
@@ -214,7 +449,7 @@ class PostAdmin(MarkdownEditorAdminMixin, admin.ModelAdmin):
             },
         ),
     ]
-    list_display = ["title", "status_badge", "published_at", "upvotes"]
+    list_display = ["title", "status_badge", "published_at", "upvotes", "quick_actions"]
     list_filter = ["status", "tags"]
     search_fields = ["title", "body", "tags__name"]
     prepopulated_fields = {"slug": ("title",)}
@@ -397,6 +632,7 @@ class PostAdmin(MarkdownEditorAdminMixin, admin.ModelAdmin):
             return
 
         post.save(update_fields=["description"])
+        create_revision(post, request.user, reason="Generated description")
         self.message_user(
             request,
             "Saved changes and generated a new description.",
@@ -417,11 +653,24 @@ class PostAdmin(MarkdownEditorAdminMixin, admin.ModelAdmin):
         queryset.filter(published_at__isnull=False).update(status=Post.PUBLISHED)
         for post in queryset:
             post.refresh_from_db(fields=["status", "published_at"])
+            create_revision(
+                post,
+                getattr(request, "user", None),
+                reason="Published from bulk action",
+            )
             send_webmentions_for_post_async(post)
 
     @admin.action(description="Unpublish selected posts")
     def unpublish_posts(self, request, queryset):
-        queryset.update(status=Post.DRAFT, published_at=None)
+        for post in queryset:
+            post.status = Post.DRAFT
+            post.published_at = None
+            post.save(update_fields=["status", "published_at"])
+            create_revision(
+                post,
+                getattr(request, "user", None),
+                reason="Unpublished from bulk action",
+            )
 
     @admin.action(description="Generate descriptions with OpenRouter")
     def generate_descriptions(self, request, queryset):
@@ -438,6 +687,11 @@ class PostAdmin(MarkdownEditorAdminMixin, admin.ModelAdmin):
                 continue
 
             post.save(update_fields=["description"])
+            create_revision(
+                post,
+                getattr(request, "user", None),
+                reason="Generated description from bulk action",
+            )
             generated += 1
 
         if generated:
@@ -471,7 +725,7 @@ class NoteAdmin(MarkdownEditorAdminMixin, admin.ModelAdmin):
             },
         ),
     ]
-    list_display = ["note_summary", "status_badge", "published_at"]
+    list_display = ["note_summary", "status_badge", "published_at", "quick_actions"]
     list_filter = ["status", "tags"]
     search_fields = ["body", "tags__name"]
     autocomplete_fields = ["tags"]
@@ -493,6 +747,11 @@ class NoteAdmin(MarkdownEditorAdminMixin, admin.ModelAdmin):
         urls = super().get_urls()
         custom_urls = [
             path(
+                "quick/",
+                self.admin_site.admin_view(self.quick_note_view),
+                name="blog_note_quick",
+            ),
+            path(
                 "preview/",
                 self.admin_site.admin_view(self.preview_view),
                 name="blog_note_preview",
@@ -505,6 +764,37 @@ class NoteAdmin(MarkdownEditorAdminMixin, admin.ModelAdmin):
         ]
         return custom_urls + urls
 
+    def quick_note_view(self, request):
+        if not self.has_add_permission(request):
+            raise PermissionDenied
+
+        if request.method == "POST":
+            form = QuickNoteForm(request.POST)
+            if form.is_valid():
+                note = form.save(commit=False)
+                note.status = Note.PUBLISHED
+                note.published_at = timezone.now()
+                note.save()
+                form.save_m2m()
+                create_revision(note, request.user, reason="Published from quick note")
+                self.message_user(request, "Published the note.", messages.SUCCESS)
+                return HttpResponseRedirect(
+                    reverse("admin:blog_note_change", args=[note.pk])
+                )
+        else:
+            form = QuickNoteForm()
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Quick note",
+            "opts": self.opts,
+            "form": form,
+            "markdown_render_url": reverse("admin:blog_note_render_markdown"),
+            "inline_media_upload_url": reverse("admin:blog_postmedia_editor_upload"),
+            "note_list_url": reverse("admin:blog_note_changelist"),
+        }
+        return render(request, "admin/blog/note/quick_note.html", context)
+
     def preview_view(self, request, object_id=None):
         obj = self.get_object(request, object_id) if object_id else None
         if object_id and obj is None:
@@ -512,6 +802,19 @@ class NoteAdmin(MarkdownEditorAdminMixin, admin.ModelAdmin):
             return HttpResponseRedirect(reverse("admin:blog_note_changelist"))
 
         if request.method != "POST":
+            if obj is not None and self.has_view_or_change_permission(request, obj):
+                if obj.published_at is None:
+                    obj.published_at = timezone.now()
+                return render(
+                    request,
+                    "blog/note_detail.html",
+                    {
+                        "note": obj,
+                        "canonical_url": request.build_absolute_uri(obj.get_absolute_url()),
+                        "note_tags": obj.tags.all(),
+                        "is_preview": True,
+                    },
+                )
             self.message_user(
                 request,
                 "Use the Preview button on the note form.",
@@ -598,10 +901,23 @@ class NoteAdmin(MarkdownEditorAdminMixin, admin.ModelAdmin):
             if note.published_at is None:
                 note.published_at = timezone.now()
             note.save()
+            create_revision(
+                note,
+                getattr(request, "user", None),
+                reason="Published from bulk action",
+            )
 
     @admin.action(description="Unpublish selected notes")
     def unpublish_notes(self, request, queryset):
-        queryset.update(status=Note.DRAFT, published_at=None)
+        for note in queryset:
+            note.status = Note.DRAFT
+            note.published_at = None
+            note.save(update_fields=["status", "published_at"])
+            create_revision(
+                note,
+                getattr(request, "user", None),
+                reason="Unpublished from bulk action",
+            )
 
 
 @admin.register(PostMedia)
@@ -618,6 +934,43 @@ class PostMediaAdmin(admin.ModelAdmin):
         "markdown_snippet_display",
         "created_at",
     ]
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "editor-upload/",
+                self.admin_site.admin_view(self.editor_upload_view),
+                name="blog_postmedia_editor_upload",
+            ),
+        ]
+        return custom_urls + urls
+
+    def editor_upload_view(self, request):
+        if request.method != "POST":
+            return JsonResponse({"error": "POST required."}, status=405)
+        if not self.has_add_permission(request):
+            raise PermissionDenied
+
+        upload = request.FILES.get("file")
+        if upload is None:
+            return JsonResponse({"error": "Choose an image to upload."}, status=400)
+        if not (upload.content_type or "").startswith("image/"):
+            return JsonResponse({"error": "Only image uploads are supported here."}, status=400)
+
+        media = PostMedia.objects.create(
+            title=request.POST.get("title", "").strip() or Path(upload.name).stem,
+            alt_text=request.POST.get("alt_text", "").strip(),
+            file=upload,
+        )
+        return JsonResponse(
+            {
+                "id": media.pk,
+                "title": media.title,
+                "snippet": media.markdown_snippet,
+                "url": media.file.url,
+            }
+        )
 
     @admin.display(description="Markdown snippet")
     def markdown_snippet_display(self, obj):

@@ -13,3 +13,10 @@
         <p>{{ content_list_description }}</p>
     </div>
 {% endblock %}
+
+{% block object-tools-items %}
+    {% if content_type_label == "note" %}
+        <li><a href="{% url 'admin:blog_note_quick' %}" class="addlink">Quick note</a></li>
+    {% endif %}
+    {{ block.super }}
+{% endblock %}

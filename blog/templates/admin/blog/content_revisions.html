@@ -1,0 +1,56 @@
+{% extends "admin/base_site.html" %}
+{% load admin_urls static %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'blog/admin-editor.css' %}">
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Home</a>
+    &rsaquo; <a href="{% url opts|admin_urlname:'changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+    &rsaquo; <a href="{{ change_url }}">{{ original }}</a>
+    &rsaquo; Revisions
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="revision-page">
+    <div class="content-list-heading">
+        <p class="writing-kicker">Version history</p>
+        <h1>{{ original }}</h1>
+        <p>Every save from the writing editor is preserved here.</p>
+    </div>
+
+    <p><a class="button" href="{{ change_url }}">Back to editor</a></p>
+
+    {% if revision_rows %}
+        <div class="revision-list">
+            {% for row in revision_rows %}
+                <article class="revision-card">
+                    <header>
+                        <div>
+                            <strong>{{ row.revision.created_at|date:"F j, Y \a\t g:i A" }}</strong>
+                            <span>{{ row.revision.reason|default:"Saved" }}{% if row.revision.created_by %} by {{ row.revision.created_by }}{% endif %}</span>
+                        </div>
+                        <form method="post" action="{{ row.restore_url }}">
+                            {% csrf_token %}
+                            <button class="button" type="submit">Restore this version</button>
+                        </form>
+                    </header>
+                    <details>
+                        <summary>Show body changes</summary>
+                        <pre>{{ row.diff }}</pre>
+                    </details>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="revision-empty">
+            <h2>No revisions yet</h2>
+            <p>The first one will appear after the next save.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

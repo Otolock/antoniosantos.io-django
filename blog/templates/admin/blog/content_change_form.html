@@ -8,6 +8,12 @@
 {% endblock %}
 
 {% block content_title %}
+    <div
+        data-editor-config
+        data-render-url="{{ markdown_render_url }}"
+        data-upload-url="{{ inline_media_upload_url }}"
+        hidden
+    ></div>
     <div class="writing-heading">
         <div class="writing-heading-topline">
             <p class="writing-kicker">{{ content_type_label|capfirst }} editor</p>
@@ -17,6 +23,23 @@
         <h1>{% if original %}{{ original }}{% else %}New {{ content_type_label }}{% endif %}</h1>
         <p>Paste Markdown from iA Writer and it will stay Markdown.</p>
     </div>
+    <div class="draft-recovery" data-draft-recovery hidden>
+        <div>
+            <strong>Unsaved local draft found</strong>
+            <span data-draft-recovery-time></span>
+        </div>
+        <div class="draft-recovery-actions">
+            <button class="button" type="button" data-restore-draft>Restore</button>
+            <button class="button" type="button" data-discard-draft>Discard backup</button>
+        </div>
+    </div>
+{% endblock %}
+
+{% block object-tools-items %}
+    {% if revision_history_url %}
+        <li><a href="{{ revision_history_url }}">Revisions</a></li>
+    {% endif %}
+    {{ block.super }}
 {% endblock %}
 
 {% block after_field_sets %}
@@ -68,6 +91,14 @@
             </div>
         </details>
     </section>
+
+    <aside class="publish-checks" data-publish-checks hidden>
+        <div>
+            <strong>Review before publishing</strong>
+            <p>These are warnings, not blockers.</p>
+        </div>
+        <ul data-publish-check-list></ul>
+    </aside>
 {% endblock %}
 
 {% block submit_buttons_bottom %}
