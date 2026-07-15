@@ -5,10 +5,14 @@
 {% block head %}<link rel="canonical" href="{{ canonical_url }}">{% endblock %}
 
 {% block content %}
+{% if is_preview %}
+    <p class="message">Preview only. This note has not been published from this view.</p>
+{% endif %}
+
 <article class="h-entry post-entry note-entry">
     <header class="post-header">
         <p class="post-date note-date">
-            <a class="p-name u-url" href="{{ note.get_absolute_url }}">
+            <a class="p-name u-url" href="{% if is_preview %}{{ canonical_url }}{% else %}{{ note.get_absolute_url }}{% endif %}">
                 <time class="dt-published" datetime="{{ note.published_at|date:'c' }}">{{ note.published_at|date:"F j, Y \a\t g:i A" }}</time>
             </a>
             <span class="p-author h-card"><data class="p-name" value="Antonio Santos"></data><data class="u-url" value="{% url 'blog:home' %}"></data></span>

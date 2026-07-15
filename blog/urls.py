@@ -8,9 +8,9 @@ from .sitemaps import PostSitemap, StaticViewSitemap
 
 app_name = "blog"
 
-admin.site.site_header = 'Antonio\'s Blog'
-admin.site.index_title = 'Blog Administration'
-admin.site.site_title = 'Antonio\'s Blog'
+admin.site.site_header = "Antonio's Studio"
+admin.site.index_title = "Publishing desk"
+admin.site.site_title = "Antonio's Studio"
 
 sitemaps = {
     "pages": StaticViewSitemap,

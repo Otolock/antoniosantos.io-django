@@ -1,0 +1,403 @@
+:root {
+    --studio-accent: #e96a3a;
+    --studio-accent-dark: #b9461f;
+    --studio-surface: color-mix(in srgb, var(--body-bg) 94%, var(--body-fg));
+    --studio-border: color-mix(in srgb, var(--body-fg) 16%, transparent);
+}
+
+body.change-form .main > .content {
+    padding-bottom: 7rem;
+}
+
+body.change-form #content {
+    max-width: 72rem;
+}
+
+.writing-heading {
+    margin-bottom: 1.5rem;
+}
+
+.writing-heading h1 {
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 750;
+    letter-spacing: -0.035em;
+    line-height: 1.05;
+    margin: 0.15rem 0 0.45rem;
+}
+
+.writing-heading p {
+    color: var(--body-quiet-color);
+    margin: 0;
+}
+
+.writing-heading .writing-kicker {
+    color: var(--studio-accent);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.change-form fieldset.module,
+.media-section {
+    background: var(--body-bg);
+    border: 1px solid var(--studio-border);
+    border-radius: 0.9rem;
+    box-shadow: 0 0.65rem 2rem rgb(0 0 0 / 5%);
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+
+.change-form fieldset.module h2 {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    color: var(--body-fg);
+    font-size: 1rem;
+    padding: 1.1rem 1.2rem 0;
+}
+
+.change-form fieldset.module .description {
+    color: var(--body-quiet-color);
+    margin: 0;
+    padding: 0.35rem 1.2rem 0.5rem;
+}
+
+.change-form .form-row {
+    border-bottom-color: var(--studio-border);
+    padding: 1rem 1.2rem;
+}
+
+.change-form .form-row:last-child {
+    border-bottom: 0;
+}
+
+.change-form .aligned label {
+    color: var(--body-quiet-color);
+    font-size: 0.78rem;
+    font-weight: 750;
+    letter-spacing: 0.035em;
+    text-transform: uppercase;
+}
+
+.writing-section .form-row.field-title input,
+.details-section input[type="text"],
+.details-section input[type="url"],
+.details-section .select2-container,
+.details-section select,
+.publishing-section select {
+    max-width: none;
+    width: 100%;
+}
+
+.writing-section .field-body > div,
+.writing-section .field-body .flex-container {
+    display: block;
+    width: auto !important;
+}
+
+.writing-section .form-row.field-title input {
+    font-size: clamp(1.35rem, 3vw, 1.85rem);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    padding: 0.75rem 0.85rem;
+}
+
+.markdown-toolbar {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin: 0 0 0.65rem;
+}
+
+.markdown-toolbar button {
+    background: var(--studio-surface);
+    border: 1px solid var(--studio-border);
+    border-radius: 0.45rem;
+    color: var(--body-fg);
+    cursor: pointer;
+    font-weight: 750;
+    min-height: 2.25rem;
+    min-width: 2.4rem;
+    padding: 0.35rem 0.65rem;
+}
+
+.markdown-toolbar button:hover,
+.markdown-toolbar button:focus-visible {
+    border-color: var(--studio-accent);
+    color: var(--studio-accent);
+}
+
+.markdown-count {
+    color: var(--body-quiet-color);
+    font-size: 0.78rem;
+    margin-left: auto;
+}
+
+.markdown-editor {
+    background: var(--darkened-bg);
+    border: 1px solid var(--studio-border);
+    border-radius: 0.65rem;
+    box-sizing: border-box;
+    font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+    font-size: 1rem;
+    line-height: 1.7;
+    min-height: 52vh;
+    padding: 1rem;
+    resize: vertical;
+    width: 100%;
+}
+
+.markdown-editor:focus {
+    border-color: var(--studio-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--studio-accent) 18%, transparent);
+    outline: none;
+}
+
+.description-field-with-action {
+    align-items: stretch;
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.description-field-with-action #id_description {
+    flex: 1 1 auto;
+    max-width: none;
+}
+
+.description-generate-button {
+    align-items: center;
+    display: inline-flex;
+    font-weight: 750;
+    justify-content: center;
+    min-height: 2.25rem;
+    white-space: nowrap;
+}
+
+.media-section details > summary {
+    align-items: center;
+    cursor: pointer;
+    display: flex;
+    font-size: 1rem;
+    font-weight: 750;
+    justify-content: space-between;
+    padding: 1.1rem 1.2rem;
+}
+
+.media-section details > summary::marker {
+    color: var(--studio-accent);
+}
+
+.summary-hint {
+    color: var(--body-quiet-color);
+    font-size: 0.78rem;
+    font-weight: 500;
+}
+
+.media-section-body {
+    border-top: 1px solid var(--studio-border);
+    padding: 1rem 1.2rem;
+}
+
+.media-section-actions {
+    align-items: center;
+    display: flex;
+    gap: 0.75rem;
+    justify-content: space-between;
+}
+
+.media-section-actions p,
+.empty-media {
+    color: var(--body-quiet-color);
+    margin: 0;
+}
+
+.media-list {
+    display: grid;
+    gap: 0.5rem;
+    list-style: none;
+    margin: 1rem 0 0;
+    max-height: 18rem;
+    overflow: auto;
+    padding: 0;
+}
+
+.media-list li {
+    align-items: center;
+    background: var(--studio-surface);
+    border-radius: 0.55rem;
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    padding: 0.7rem;
+}
+
+.media-title {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 0.2rem;
+}
+
+.media-list code {
+    color: var(--body-quiet-color);
+    display: block;
+    font-size: 0.76rem;
+    max-width: 48rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.media-copy-button {
+    flex: 0 0 auto;
+}
+
+.writing-actions {
+    align-items: center;
+    backdrop-filter: blur(12px);
+    background: color-mix(in srgb, var(--body-bg) 90%, transparent);
+    border: 1px solid var(--studio-border);
+    border-radius: 0.85rem;
+    bottom: 0.75rem;
+    box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 16%);
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    margin: 1.5rem 0 0;
+    padding: 0.65rem;
+    position: sticky;
+    z-index: 20;
+}
+
+.writing-actions input,
+.writing-actions .writing-delete,
+.writing-actions .writing-discard {
+    border-radius: 0.5rem;
+    box-sizing: border-box;
+    min-height: 2.65rem;
+    padding: 0.65rem 1rem;
+}
+
+.writing-actions .writing-preview {
+    background: var(--studio-surface);
+    color: var(--body-fg);
+}
+
+.writing-actions .writing-publish {
+    background: var(--studio-accent);
+    font-weight: 800;
+}
+
+.writing-actions .writing-publish:hover,
+.writing-actions .writing-publish:focus {
+    background: var(--studio-accent-dark);
+}
+
+.writing-delete {
+    align-items: center;
+    color: var(--delete-button-bg);
+    display: inline-flex;
+    margin-right: auto;
+}
+
+.writing-discard {
+    align-items: center;
+    color: var(--body-quiet-color);
+    display: inline-flex;
+}
+
+.writing-discard:hover,
+.writing-discard:focus {
+    color: var(--body-fg);
+}
+
+@media (max-width: 767px) {
+    body.change-form #content {
+        padding-inline: 0.75rem;
+    }
+
+    .change-form .form-row,
+    .media-section-body {
+        padding: 0.85rem;
+    }
+
+    .change-form fieldset.module h2,
+    .media-section details > summary {
+        padding-inline: 0.85rem;
+    }
+
+    .change-form fieldset.module .description {
+        padding-inline: 0.85rem;
+    }
+
+    .aligned label {
+        padding-bottom: 0.4rem;
+    }
+
+    .markdown-editor {
+        font-size: 16px;
+        height: auto !important;
+        max-height: none !important;
+        min-height: 48vh !important;
+        padding: 0.85rem;
+    }
+
+    .markdown-count {
+        flex-basis: 100%;
+        margin-left: 0;
+    }
+
+    .media-section-actions {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .summary-hint {
+        display: none;
+    }
+
+    .writing-actions {
+        bottom: 0.35rem;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .writing-actions input {
+        margin: 0;
+        width: 100%;
+    }
+
+    .writing-actions .writing-publish {
+        grid-column: 1 / -1;
+        grid-row: 1;
+    }
+
+    .writing-actions .writing-save-close {
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+    .writing-actions .writing-save {
+        grid-column: 2;
+        grid-row: 2;
+    }
+
+    .writing-actions .writing-preview {
+        grid-column: 1;
+        grid-row: 3;
+    }
+
+    .writing-delete {
+        display: none;
+    }
+
+    .writing-discard {
+        grid-column: 2;
+        grid-row: 3;
+        justify-content: center;
+        margin: 0;
+        text-align: center;
+    }
+}

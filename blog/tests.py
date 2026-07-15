@@ -940,6 +940,55 @@ class PostMediaTests(TestCase):
 
 @override_settings(STORAGES=TEST_STORAGES)
 class PostAdminTests(TestCase):
+    def test_post_and_note_editors_use_the_mobile_markdown_writing_shell(self):
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        for url in [
+            reverse("admin:blog_post_add"),
+            reverse("admin:blog_note_add"),
+        ]:
+            with self.subTest(url=url):
+                response = self.client.get(url)
+
+                self.assertContains(response, 'data-markdown-editor="true"')
+                self.assertContains(response, "Paste Markdown from iA Writer")
+                self.assertContains(response, "blog/admin-editor.css")
+                self.assertContains(response, "blog/admin-editor.js")
+                self.assertContains(response, 'class="submit-row writing-actions"')
+                self.assertContains(response, 'name="_preview"')
+                self.assertContains(response, 'name="_save"')
+                self.assertContains(response, "Save and close")
+                self.assertContains(response, "Discard edits")
+
+    def test_note_preview_renders_form_values_without_saving(self):
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("admin:blog_note_preview"),
+            {
+                "body": "A **previewed** note.",
+                "status": Note.DRAFT,
+                "published_at_0": "",
+                "published_at_1": "",
+                "_preview": "Preview",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "A <strong>previewed</strong> note.")
+        self.assertContains(response, "Preview only.")
+        self.assertEqual(Note.objects.count(), 0)
+
     def test_admin_can_publish_an_untitled_note(self):
         user = get_user_model().objects.create_superuser(
             username="admin",

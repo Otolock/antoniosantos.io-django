@@ -1,7 +1,8 @@
 from django.contrib import admin
 from django.contrib import messages
+from django import forms
 from django.core.exceptions import PermissionDenied
-from django.db.models import Case, F, IntegerField, Value, When
+from django.db.models import Case, F, IntegerField, TextField, Value, When
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import path, reverse
@@ -110,6 +111,33 @@ def _admin_index(request, extra_context=None):
 admin.site.get_urls = _admin_get_urls
 admin.site.index = _admin_index
 admin.site.index_template = "admin/moderation_index.html"
+admin.site.site_header = "Antonio's Studio"
+admin.site.site_title = "Antonio's Studio"
+admin.site.index_title = "Publishing desk"
+
+
+class MarkdownEditorAdminMixin:
+    """Shared, writing-focused behavior for posts and notes."""
+
+    formfield_overrides = {
+        TextField: {
+            "widget": forms.Textarea(
+                attrs={
+                    "class": "markdown-editor",
+                    "data-markdown-editor": "true",
+                    "spellcheck": "true",
+                    "autocapitalize": "sentences",
+                    "placeholder": "Paste Markdown from iA Writer, or start writing here…",
+                }
+            )
+        }
+    }
+
+    def render_change_form(self, request, context, *args, **kwargs):
+        context["available_media"] = PostMedia.objects.order_by("-created_at", "-pk")[
+            :25
+        ]
+        return super().render_change_form(request, context, *args, **kwargs)
 
 
 @admin.register(Subscriber)
@@ -127,13 +155,39 @@ class TagAdmin(admin.ModelAdmin):
 
 
 @admin.register(Post)
-class PostAdmin(admin.ModelAdmin):
+class PostAdmin(MarkdownEditorAdminMixin, admin.ModelAdmin):
     change_form_template = "admin/blog/post/change_form.html"
+    fieldsets = [
+        (None, {"fields": ["title", "body"], "classes": ["writing-section"]}),
+        (
+            "Publishing",
+            {
+                "fields": ["status", "published_at"],
+                "classes": ["publishing-section"],
+                "description": "Save as a draft, schedule it, or publish immediately.",
+            },
+        ),
+        (
+            "Post details",
+            {
+                "fields": [
+                    "slug",
+                    "description",
+                    "tags",
+                    "reply_to_url",
+                    "reply_to_title",
+                    "upvotes_count",
+                ],
+                "classes": ["details-section"],
+                "description": "Optional URL, summary, tags, and reply context.",
+            },
+        ),
+    ]
     list_display = ["title", "status", "published_at", "upvotes"]
     list_filter = ["status", "tags"]
     search_fields = ["title", "body", "tags__name"]
     prepopulated_fields = {"slug": ("title",)}
-    filter_horizontal = ["tags"]
+    autocomplete_fields = ["tags"]
     actions = ["publish_posts", "unpublish_posts", "generate_descriptions"]
 
     def get_ordering(self, request):
@@ -149,9 +203,6 @@ class PostAdmin(admin.ModelAdmin):
         ]
 
     def render_change_form(self, request, context, *args, **kwargs):
-        context["available_media"] = PostMedia.objects.order_by("-created_at", "-pk")[
-            :25
-        ]
         original = context.get("original")
         if original:
             context["post_preview_url"] = reverse(
@@ -160,6 +211,7 @@ class PostAdmin(admin.ModelAdmin):
             )
         else:
             context["post_preview_url"] = reverse("admin:blog_post_preview")
+        context["content_type_label"] = "post"
         return super().render_change_form(request, context, *args, **kwargs)
 
     def get_urls(self):
@@ -366,14 +418,113 @@ class PostAdmin(admin.ModelAdmin):
 
 
 @admin.register(Note)
-class NoteAdmin(admin.ModelAdmin):
+class NoteAdmin(MarkdownEditorAdminMixin, admin.ModelAdmin):
     change_form_template = "admin/blog/note/change_form.html"
-    fields = ["body", "tags", "status", "published_at"]
+    fieldsets = [
+        (None, {"fields": ["body"], "classes": ["writing-section"]}),
+        (
+            "Publishing",
+            {
+                "fields": ["status", "published_at"],
+                "classes": ["publishing-section"],
+                "description": "Save as a draft, schedule it, or publish immediately.",
+            },
+        ),
+        (
+            "Note details",
+            {
+                "fields": ["tags"],
+                "classes": ["details-section"],
+                "description": "Optional tags for organizing this note.",
+            },
+        ),
+    ]
     list_display = ["display_title", "status", "published_at"]
     list_filter = ["status", "tags"]
     search_fields = ["body", "tags__name"]
-    filter_horizontal = ["tags"]
+    autocomplete_fields = ["tags"]
     actions = ["publish_notes", "unpublish_notes"]
+
+    def render_change_form(self, request, context, *args, **kwargs):
+        original = context.get("original")
+        if original:
+            context["content_preview_url"] = reverse(
+                "admin:blog_note_preview",
+                args=[original.pk],
+            )
+        else:
+            context["content_preview_url"] = reverse("admin:blog_note_preview")
+        context["content_type_label"] = "note"
+        return super().render_change_form(request, context, *args, **kwargs)
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "preview/",
+                self.admin_site.admin_view(self.preview_view),
+                name="blog_note_preview",
+            ),
+            path(
+                "<path:object_id>/preview/",
+                self.admin_site.admin_view(self.preview_view),
+                name="blog_note_preview",
+            ),
+        ]
+        return custom_urls + urls
+
+    def preview_view(self, request, object_id=None):
+        obj = self.get_object(request, object_id) if object_id else None
+        if object_id and obj is None:
+            self.message_user(request, "Note not found.", messages.ERROR)
+            return HttpResponseRedirect(reverse("admin:blog_note_changelist"))
+
+        if request.method != "POST":
+            self.message_user(
+                request,
+                "Use the Preview button on the note form.",
+                messages.WARNING,
+            )
+            target = "admin:blog_note_change" if obj else "admin:blog_note_add"
+            args = [obj.pk] if obj else None
+            return HttpResponseRedirect(reverse(target, args=args))
+
+        if obj is None and not self.has_add_permission(request):
+            raise PermissionDenied
+        if obj is not None and not self.has_change_permission(request, obj):
+            raise PermissionDenied
+
+        form_class = self.get_form(request, obj, change=obj is not None)
+        form = form_class(request.POST, request.FILES, instance=obj)
+        if not form.is_valid():
+            self.message_user(
+                request,
+                "Fix the highlighted errors before previewing.",
+                messages.ERROR,
+            )
+            target = "admin:blog_note_change" if obj else "admin:blog_note_add"
+            args = [obj.pk] if obj else None
+            return HttpResponseRedirect(reverse(target, args=args))
+
+        note = form.save(commit=False)
+        if note.published_at is None:
+            note.published_at = timezone.now()
+        note_tags = form.cleaned_data.get("tags", [])
+        canonical_path = (
+            note.get_absolute_url()
+            if note.slug
+            else reverse("admin:blog_note_preview")
+        )
+        return render(
+            request,
+            "blog/note_detail.html",
+            {
+                "note": note,
+                "canonical_url": request.build_absolute_uri(canonical_path),
+                "note_tags": note_tags,
+                "is_preview": True,
+            },
+        )
 
     @admin.display(description="Note", ordering="published_at")
     def display_title(self, obj):
