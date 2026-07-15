@@ -52,7 +52,7 @@
     gap: calc(var(--spacing) * 6);
     background: var(--color-cyan-400);
     color: var(--color-zinc-50);
-    font-family: var(--font-sans);
+    font-family: var(--font-serif);
   }
 
   .site-header {

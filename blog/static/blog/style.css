@@ -5,6 +5,7 @@
   :root, :host {
     --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
       "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
       "Courier New", monospace;
     --color-cyan-400: oklch(78.9% 0.154 211.53);
@@ -601,9 +602,6 @@
   .block {
     display: block;
   }
-  .flex {
-    display: flex;
-  }
   .hidden {
     display: none;
   }
@@ -692,7 +690,7 @@
     gap: calc(var(--spacing) * 6);
     background: var(--color-cyan-400);
     color: var(--color-zinc-50);
-    font-family: var(--font-sans);
+    font-family: var(--font-serif);
   }
   .site-header {
     display: flex;
