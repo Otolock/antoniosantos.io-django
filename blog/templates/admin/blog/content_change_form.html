@@ -12,6 +12,7 @@
         <div class="writing-heading-topline">
             <p class="writing-kicker">{{ content_type_label|capfirst }} editor</p>
             <span class="editor-status" data-editor-status>Draft</span>
+            <span class="editor-save-state" data-editor-save-state>Saved</span>
         </div>
         <h1>{% if original %}{{ original }}{% else %}New {{ content_type_label }}{% endif %}</h1>
         <p>Paste Markdown from iA Writer and it will stay Markdown.</p>
@@ -54,7 +55,10 @@
                                     <a class="media-title" href="{% url 'admin:blog_postmedia_change' media.pk %}">{{ media.title }}</a>
                                     <code>{{ media.markdown_snippet }}</code>
                                 </div>
-                                <button class="button media-copy-button" type="button" data-copy-markdown="{{ media.markdown_snippet }}">Copy</button>
+                                <div class="media-item-actions">
+                                    <button class="button media-insert-button" type="button" data-insert-markdown="{{ media.markdown_snippet }}">Insert</button>
+                                    <button class="button media-copy-button" type="button" data-copy-markdown="{{ media.markdown_snippet }}">Copy</button>
+                                </div>
                             </li>
                         {% endfor %}
                     </ul>

@@ -154,10 +154,19 @@ class MarkdownEditorAdminMixin:
 
     @admin.display(ordering="status", description="Status")
     def status_badge(self, obj):
+        status = obj.status
+        label = obj.get_status_display()
+        if (
+            status == obj.PUBLISHED
+            and obj.published_at
+            and obj.published_at > timezone.now()
+        ):
+            status = "scheduled"
+            label = "Scheduled"
         return format_html(
             '<span class="content-status content-status--{}">{}</span>',
-            obj.status,
-            obj.get_status_display(),
+            status,
+            label,
         )
 
 

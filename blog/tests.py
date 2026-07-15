@@ -965,6 +965,7 @@ class PostAdminTests(TestCase):
                 self.assertContains(response, "Save and close")
                 self.assertContains(response, "Discard edits")
                 self.assertContains(response, "data-editor-status")
+                self.assertContains(response, "data-editor-save-state")
 
     def test_post_and_note_lists_use_the_publishing_desk_layout(self):
         user = get_user_model().objects.create_superuser(
@@ -1001,6 +1002,26 @@ class PostAdminTests(TestCase):
 
         self.assertContains(response, "A short note that is easier to recognize")
         self.assertContains(response, 'class="content-status content-status--draft"')
+
+    def test_scheduled_content_uses_a_scheduled_status_badge(self):
+        Post.objects.create(
+            title="Scheduled post",
+            slug="scheduled-post",
+            body="Coming soon.",
+            status=Post.PUBLISHED,
+            published_at=timezone.now() + timezone.timedelta(days=1),
+        )
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("admin:blog_post_changelist"))
+
+        self.assertContains(response, "Scheduled")
+        self.assertContains(response, 'class="content-status content-status--scheduled"')
 
     def test_note_preview_renders_form_values_without_saving(self):
         user = get_user_model().objects.create_superuser(
@@ -1106,6 +1127,7 @@ class PostAdminTests(TestCase):
             response,
             "![A bright sky](/media/blog/media/2026/06/hero.png)",
         )
+        self.assertContains(response, "data-insert-markdown")
 
     def test_post_editor_shows_recent_media_newest_first(self):
         post = Post.objects.create(

@@ -70,10 +70,27 @@ body.change-form #content {
     color: color-mix(in srgb, #27865a 82%, var(--body-fg));
 }
 
+.editor-status[data-status="scheduled"],
+.content-status--scheduled {
+    background: color-mix(in srgb, #4b6fb5 16%, transparent);
+    color: color-mix(in srgb, #4b6fb5 82%, var(--body-fg));
+}
+
 .editor-status[data-status="deleted"],
 .content-status--deleted {
     background: color-mix(in srgb, var(--body-quiet-color) 15%, transparent);
     color: var(--body-quiet-color);
+}
+
+.editor-save-state {
+    color: var(--body-quiet-color);
+    font-size: 0.75rem;
+    margin-left: auto;
+}
+
+.editor-save-state[data-state="unsaved"] {
+    color: color-mix(in srgb, #d99000 78%, var(--body-fg));
+    font-weight: 700;
 }
 
 .change-form fieldset.module,
@@ -288,8 +305,19 @@ body.change-form #content {
     white-space: nowrap;
 }
 
-.media-copy-button {
+.media-item-actions {
+    display: flex;
     flex: 0 0 auto;
+    gap: 0.4rem;
+}
+
+.media-copy-button,
+.media-insert-button {
+    flex: 0 0 auto;
+}
+
+.media-insert-button {
+    font-weight: 750;
 }
 
 .writing-actions {
@@ -491,6 +519,16 @@ body.change-list #content {
     .media-section-actions {
         align-items: flex-start;
         flex-direction: column;
+    }
+
+    .media-list li {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .media-item-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
     }
 
     .summary-hint {
