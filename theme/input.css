@@ -130,6 +130,10 @@
     gap: calc(var(--spacing) * 2);
   }
 
+  .intro-copy {
+    color: var(--color-zinc-100);
+  }
+
   .page-heading {
     color: var(--color-gray-900);
     font-size: var(--text-2xl);
@@ -318,6 +322,10 @@
 
   .book-meta {
     min-width: 0;
+  }
+
+  .book-author {
+    color: var(--color-zinc-200);
   }
 
   .reading-note {
@@ -614,7 +622,8 @@
 }
 
 @layer utilities {
-  .note-prose {
+  .note-prose,
+  .post-webmentions {
     --tw-prose-body: var(--color-zinc-50);
     --tw-prose-headings: var(--color-gray-900);
     --tw-prose-links: var(--color-blue-400);
@@ -633,14 +642,14 @@
     --tw-prose-headings: var(--color-zinc-50);
     --tw-prose-lead: var(--color-zinc-100);
     --tw-prose-links: var(--color-blue-400);
-    --tw-prose-bold: var(--color-white);
+    --tw-prose-bold: var(--color-gray-900);
     --tw-prose-counters: var(--color-zinc-200);
     --tw-prose-bullets: var(--color-zinc-200);
     --tw-prose-hr: color-mix(in oklab, var(--color-zinc-700) 70%, transparent);
     --tw-prose-quotes: var(--color-zinc-50);
     --tw-prose-quote-borders: var(--color-zinc-700);
     --tw-prose-captions: var(--color-zinc-200);
-    --tw-prose-kbd: var(--color-white);
+    --tw-prose-kbd: var(--color-gray-900);
     --tw-prose-code: var(--color-zinc-50);
     --tw-prose-pre-code: var(--color-zinc-100);
     --tw-prose-pre-bg: color-mix(in oklab, var(--color-zinc-950) 92%, var(--color-zinc-700));

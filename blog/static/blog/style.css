@@ -622,12 +622,6 @@
     --tw-font-weight: var(--font-weight-bold);
     font-weight: var(--font-weight-bold);
   }
-  .text-zinc-100 {
-    color: var(--color-zinc-100);
-  }
-  .text-zinc-200 {
-    color: var(--color-zinc-200);
-  }
   .italic {
     font-style: italic;
   }
@@ -754,6 +748,9 @@
     display: flex;
     flex-direction: column;
     gap: calc(var(--spacing) * 2);
+  }
+  .intro-copy {
+    color: var(--color-zinc-100);
   }
   .page-heading {
     color: var(--color-gray-900);
@@ -915,6 +912,9 @@
   }
   .book-meta {
     min-width: 0;
+  }
+  .book-author {
+    color: var(--color-zinc-200);
   }
   .reading-note {
     color: var(--color-zinc-100);
@@ -1157,7 +1157,7 @@
   }
 }
 @layer utilities {
-  .note-prose {
+  .note-prose, .post-webmentions {
     --tw-prose-body: var(--color-zinc-50);
     --tw-prose-headings: var(--color-gray-900);
     --tw-prose-links: var(--color-blue-400);
@@ -1175,7 +1175,7 @@
     --tw-prose-headings: var(--color-zinc-50);
     --tw-prose-lead: var(--color-zinc-100);
     --tw-prose-links: var(--color-blue-400);
-    --tw-prose-bold: var(--color-white);
+    --tw-prose-bold: var(--color-gray-900);
     --tw-prose-counters: var(--color-zinc-200);
     --tw-prose-bullets: var(--color-zinc-200);
     --tw-prose-hr: color-mix(in srgb, oklch(37% 0.013 285.805) 70%, transparent);
@@ -1185,7 +1185,7 @@
     --tw-prose-quotes: var(--color-zinc-50);
     --tw-prose-quote-borders: var(--color-zinc-700);
     --tw-prose-captions: var(--color-zinc-200);
-    --tw-prose-kbd: var(--color-white);
+    --tw-prose-kbd: var(--color-gray-900);
     --tw-prose-code: var(--color-zinc-50);
     --tw-prose-pre-code: var(--color-zinc-100);
     --tw-prose-pre-bg: color-mix(in srgb, oklch(14.1% 0.005 285.823) 92%, oklch(37% 0.013 285.805));
