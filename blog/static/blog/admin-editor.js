@@ -1,5 +1,19 @@
 (() => {
     const editor = document.querySelector("[data-markdown-editor]");
+    const statusSelect = document.getElementById("id_status");
+    const statusBadge = document.querySelector("[data-editor-status]");
+
+    const updateStatusBadge = () => {
+        if (!statusSelect || !statusBadge) {
+            return;
+        }
+        const value = statusSelect.value;
+        statusBadge.textContent = statusSelect.selectedOptions[0]?.textContent || "Draft";
+        statusBadge.dataset.status = value;
+    };
+
+    statusSelect?.addEventListener("change", updateStatusBadge);
+    updateStatusBadge();
 
     if (editor) {
         const toolbar = document.createElement("div");

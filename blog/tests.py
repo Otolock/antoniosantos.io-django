@@ -964,6 +964,43 @@ class PostAdminTests(TestCase):
                 self.assertContains(response, 'name="_save"')
                 self.assertContains(response, "Save and close")
                 self.assertContains(response, "Discard edits")
+                self.assertContains(response, "data-editor-status")
+
+    def test_post_and_note_lists_use_the_publishing_desk_layout(self):
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        for url, heading in [
+            (reverse("admin:blog_post_changelist"), "Posts"),
+            (reverse("admin:blog_note_changelist"), "Notes"),
+        ]:
+            with self.subTest(url=url):
+                response = self.client.get(url)
+
+                self.assertContains(response, "Publishing desk")
+                self.assertContains(response, f"<h1>{heading}</h1>", html=True)
+                self.assertContains(response, "blog/admin-editor.css")
+
+    def test_note_list_uses_body_excerpt_and_status_badge(self):
+        note = Note.objects.create(
+            body="A short note that is easier to recognize than its timestamp.",
+            status=Note.DRAFT,
+        )
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("admin:blog_note_changelist"))
+
+        self.assertContains(response, "A short note that is easier to recognize")
+        self.assertContains(response, 'class="content-status content-status--draft"')
 
     def test_note_preview_renders_form_values_without_saving(self):
         user = get_user_model().objects.create_superuser(

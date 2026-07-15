@@ -119,6 +119,8 @@ admin.site.index_title = "Publishing desk"
 class MarkdownEditorAdminMixin:
     """Shared, writing-focused behavior for posts and notes."""
 
+    change_list_template = "admin/blog/content_change_list.html"
+    list_per_page = 25
     formfield_overrides = {
         TextField: {
             "widget": forms.Textarea(
@@ -139,6 +141,25 @@ class MarkdownEditorAdminMixin:
         ]
         return super().render_change_form(request, context, *args, **kwargs)
 
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context.update(
+            {
+                "content_type_label": self.model._meta.verbose_name,
+                "content_type_label_plural": self.model._meta.verbose_name_plural,
+                "content_list_description": self.content_list_description,
+            }
+        )
+        return super().changelist_view(request, extra_context=extra_context)
+
+    @admin.display(ordering="status", description="Status")
+    def status_badge(self, obj):
+        return format_html(
+            '<span class="content-status content-status--{}">{}</span>',
+            obj.status,
+            obj.get_status_display(),
+        )
+
 
 @admin.register(Subscriber)
 class SubscriberAdmin(admin.ModelAdmin):
@@ -156,6 +177,7 @@ class TagAdmin(admin.ModelAdmin):
 
 @admin.register(Post)
 class PostAdmin(MarkdownEditorAdminMixin, admin.ModelAdmin):
+    content_list_description = "Draft, schedule, and publish long-form writing."
     change_form_template = "admin/blog/post/change_form.html"
     fieldsets = [
         (None, {"fields": ["title", "body"], "classes": ["writing-section"]}),
@@ -183,7 +205,7 @@ class PostAdmin(MarkdownEditorAdminMixin, admin.ModelAdmin):
             },
         ),
     ]
-    list_display = ["title", "status", "published_at", "upvotes"]
+    list_display = ["title", "status_badge", "published_at", "upvotes"]
     list_filter = ["status", "tags"]
     search_fields = ["title", "body", "tags__name"]
     prepopulated_fields = {"slug": ("title",)}
@@ -419,6 +441,7 @@ class PostAdmin(MarkdownEditorAdminMixin, admin.ModelAdmin):
 
 @admin.register(Note)
 class NoteAdmin(MarkdownEditorAdminMixin, admin.ModelAdmin):
+    content_list_description = "Short-form updates, newest drafts first."
     change_form_template = "admin/blog/note/change_form.html"
     fieldsets = [
         (None, {"fields": ["body"], "classes": ["writing-section"]}),
@@ -439,7 +462,7 @@ class NoteAdmin(MarkdownEditorAdminMixin, admin.ModelAdmin):
             },
         ),
     ]
-    list_display = ["display_title", "status", "published_at"]
+    list_display = ["note_summary", "status_badge", "published_at"]
     list_filter = ["status", "tags"]
     search_fields = ["body", "tags__name"]
     autocomplete_fields = ["tags"]
@@ -529,6 +552,17 @@ class NoteAdmin(MarkdownEditorAdminMixin, admin.ModelAdmin):
     @admin.display(description="Note", ordering="published_at")
     def display_title(self, obj):
         return obj.display_title
+
+    @admin.display(description="Note", ordering="published_at")
+    def note_summary(self, obj):
+        summary = " ".join(obj.body.split())
+        if len(summary) > 90:
+            summary = f"{summary[:87].rstrip()}…"
+        return format_html(
+            '<span class="note-summary"><strong>{}</strong><small>{}</small></span>',
+            summary or "Empty note",
+            obj.display_title,
+        )
 
     def save_model(self, request, obj, form, change):
         if "_publish_now" in request.POST:

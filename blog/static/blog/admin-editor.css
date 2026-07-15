@@ -17,6 +17,12 @@ body.change-form #content {
     margin-bottom: 1.5rem;
 }
 
+.writing-heading-topline {
+    align-items: center;
+    display: flex;
+    gap: 0.65rem;
+}
+
 .writing-heading h1 {
     font-size: clamp(1.8rem, 4vw, 2.6rem);
     font-weight: 750;
@@ -36,6 +42,38 @@ body.change-form #content {
     font-weight: 800;
     letter-spacing: 0.12em;
     text-transform: uppercase;
+}
+
+.editor-status,
+.content-status {
+    border-radius: 999px;
+    display: inline-flex;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    padding: 0.42rem 0.6rem;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.editor-status,
+.editor-status[data-status="draft"],
+.content-status--draft {
+    background: color-mix(in srgb, #d99000 15%, transparent);
+    color: color-mix(in srgb, #d99000 78%, var(--body-fg));
+}
+
+.editor-status[data-status="published"],
+.content-status--published {
+    background: color-mix(in srgb, #27865a 16%, transparent);
+    color: color-mix(in srgb, #27865a 82%, var(--body-fg));
+}
+
+.editor-status[data-status="deleted"],
+.content-status--deleted {
+    background: color-mix(in srgb, var(--body-quiet-color) 15%, transparent);
+    color: var(--body-quiet-color);
 }
 
 .change-form fieldset.module,
@@ -313,6 +351,107 @@ body.change-form #content {
     color: var(--body-fg);
 }
 
+/* Post and note lists */
+
+body.change-list #content {
+    max-width: 78rem;
+}
+
+.content-list-heading {
+    margin-bottom: 1.5rem;
+}
+
+.content-list-heading h1 {
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 750;
+    letter-spacing: -0.035em;
+    line-height: 1.05;
+    margin: 0.15rem 0 0.45rem;
+}
+
+.content-list-heading p {
+    color: var(--body-quiet-color);
+    margin: 0;
+}
+
+.content-list-heading .writing-kicker {
+    color: var(--studio-accent);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.change-list #changelist .changelist-form-container {
+    background: var(--body-bg);
+    border: 1px solid var(--studio-border);
+    border-radius: 0.9rem;
+    box-shadow: 0 0.65rem 2rem rgb(0 0 0 / 5%);
+    overflow: hidden;
+}
+
+.change-list #toolbar {
+    background: var(--studio-surface);
+    border: 0;
+    border-bottom: 1px solid var(--studio-border);
+    padding: 0.8rem;
+}
+
+.change-list #toolbar form input[type="text"] {
+    border-color: var(--studio-border);
+    border-radius: 0.5rem;
+    min-height: 2.5rem;
+}
+
+.change-list #toolbar form input[type="submit"] {
+    border-radius: 0.5rem;
+    min-height: 2.5rem;
+}
+
+.change-list #changelist-form .actions {
+    background: var(--body-bg);
+    border-bottom: 1px solid var(--studio-border);
+    padding: 0.75rem 1rem;
+}
+
+.change-list #result_list thead th {
+    background: var(--studio-surface);
+    border-bottom-color: var(--studio-border);
+}
+
+.change-list #result_list tbody tr:hover {
+    background: color-mix(in srgb, var(--studio-accent) 6%, var(--body-bg));
+}
+
+.change-list #result_list tbody td,
+.change-list #result_list tbody th {
+    border-bottom-color: var(--studio-border);
+    padding-block: 0.85rem;
+    vertical-align: middle;
+}
+
+.note-summary {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.note-summary strong {
+    color: var(--link-fg);
+    font-weight: 700;
+}
+
+.note-summary small {
+    color: var(--body-quiet-color);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.change-list .paginator {
+    border-top: 1px solid var(--studio-border);
+    margin: 0;
+    padding: 1rem;
+}
+
 @media (max-width: 767px) {
     body.change-form #content {
         padding-inline: 0.75rem;
@@ -399,5 +538,80 @@ body.change-form #content {
         justify-content: center;
         margin: 0;
         text-align: center;
+    }
+
+    body.change-list #content {
+        padding-inline: 0.75rem;
+    }
+
+    .change-list #changelist .changelist-form-container {
+        border-radius: 0.75rem;
+    }
+
+    .change-list #toolbar form {
+        align-items: stretch;
+        display: grid;
+        gap: 0.5rem;
+        grid-template-columns: 1fr auto;
+    }
+
+    .change-list #toolbar form label {
+        display: block;
+        grid-column: 1;
+        min-width: 0;
+    }
+
+    .change-list #toolbar form input[type="text"] {
+        box-sizing: border-box;
+        width: 100%;
+    }
+
+    .change-list #toolbar form input[type="submit"] {
+        grid-column: 2;
+    }
+
+    .change-list #toolbar form br,
+    .change-list #toolbar form .help {
+        display: none;
+    }
+
+    .change-list #changelist-form .actions {
+        box-sizing: border-box;
+        display: grid;
+        gap: 0.45rem 0.5rem;
+        grid-template-columns: minmax(0, 1fr) auto;
+        width: 100%;
+    }
+
+    .change-list #changelist-form .actions label {
+        align-items: center;
+        display: grid;
+        gap: 0.4rem;
+        grid-template-columns: auto minmax(0, 1fr);
+        min-width: 0;
+    }
+
+    .change-list #changelist-form .actions select {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .change-list #changelist-form .actions .action-counter,
+    .change-list #changelist-form .actions .all,
+    .change-list #changelist-form .actions .question,
+    .change-list #changelist-form .actions .clear {
+        grid-column: 1 / -1;
+    }
+
+    .change-list #result_list .column-published_at,
+    .change-list #result_list .field-published_at,
+    .change-list #result_list .column-upvotes,
+    .change-list #result_list .field-upvotes {
+        display: none;
+    }
+
+    .change-list #result_list tbody td,
+    .change-list #result_list tbody th {
+        padding-block: 0.75rem;
     }
 }

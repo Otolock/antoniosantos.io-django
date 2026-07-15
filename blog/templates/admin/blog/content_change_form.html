@@ -9,7 +9,10 @@
 
 {% block content_title %}
     <div class="writing-heading">
-        <p class="writing-kicker">{{ content_type_label|capfirst }} editor</p>
+        <div class="writing-heading-topline">
+            <p class="writing-kicker">{{ content_type_label|capfirst }} editor</p>
+            <span class="editor-status" data-editor-status>Draft</span>
+        </div>
         <h1>{% if original %}{{ original }}{% else %}New {{ content_type_label }}{% endif %}</h1>
         <p>Paste Markdown from iA Writer and it will stay Markdown.</p>
     </div>
