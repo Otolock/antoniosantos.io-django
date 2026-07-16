@@ -6,7 +6,7 @@
 @layer base {
   :root {
     /* A daylight palette: parchment, deep green ink, and sea-glass accents. */
-    --color-cyan-400: #f5efe5;
+    --color-cyan-400: #FFFAFA;
     --color-blue-50: #d8e7df;
     --color-blue-400: #24756d;
     --color-gray-900: #183b3a;
