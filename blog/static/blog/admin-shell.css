@@ -5,6 +5,7 @@
     --studio-success: #27865a;
     --studio-warning: #d99000;
     --studio-danger: #bd3b45;
+    --studio-page-bg: #fffafa;
     --studio-radius: 0.85rem;
     --studio-border: color-mix(in srgb, var(--body-fg) 14%, transparent);
     --studio-surface: color-mix(in srgb, var(--body-bg) 95%, var(--body-fg));
@@ -26,7 +27,25 @@
 }
 
 body {
-    background: color-mix(in srgb, var(--body-bg) 97%, var(--body-fg));
+    background: var(--studio-page-bg);
+}
+
+html[data-theme="dark"] {
+    --studio-page-bg: var(--body-bg);
+}
+
+html[data-theme="light"] {
+    --studio-page-bg: #fffafa;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --studio-page-bg: var(--body-bg);
+    }
+
+    html[data-theme="light"] {
+        --studio-page-bg: #fffafa;
+    }
 }
 
 a:focus-visible,
