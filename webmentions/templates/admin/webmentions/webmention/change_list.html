@@ -23,4 +23,5 @@
 
 {% block object-tools-items %}
   <li><a href="{% url 'admin:moderation_queue' %}" class="viewlink">Review inbox</a></li>
+  {{ block.super }}
 {% endblock %}

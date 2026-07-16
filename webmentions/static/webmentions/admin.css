@@ -2,6 +2,44 @@
     margin-bottom: 1rem;
 }
 
+.model-webmention.change-list .object-tools,
+.model-sentwebmention.change-list .object-tools {
+    display: flex;
+    float: none;
+    gap: 0.4rem;
+    justify-content: flex-end;
+    margin: 0 0 1rem;
+    position: static;
+}
+
+.model-webmention.change-list #changelist-filter,
+.model-sentwebmention.change-list #changelist-filter {
+    display: none;
+}
+
+.model-webmention.change-list #changelist .changelist-form-container > div,
+.model-sentwebmention.change-list #changelist .changelist-form-container > div {
+    max-width: 100%;
+    min-width: 0;
+    width: 100%;
+}
+
+.model-webmention.change-list #changelist .changelist-form-container:has(#changelist-filter) > div,
+.model-sentwebmention.change-list #changelist .changelist-form-container:has(#changelist-filter) > div {
+    max-width: 100%;
+    width: 100%;
+}
+
+.model-webmention.change-list #content-main,
+.model-webmention.change-list #changelist,
+.model-webmention.change-list .results,
+.model-sentwebmention.change-list #content-main,
+.model-sentwebmention.change-list #changelist,
+.model-sentwebmention.change-list .results {
+    max-width: 100%;
+    min-width: 0;
+}
+
 .webmention-stat-tabs {
     display: grid;
     gap: 0.55rem;
@@ -402,11 +440,26 @@
     background: color-mix(in srgb, var(--studio-blue) 82%, black);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1400px) {
     .model-webmention.change-list #result_list .column-destination_summary,
     .model-webmention.change-list #result_list .field-destination_summary,
     .model-sentwebmention.change-list #result_list .column-response_summary,
     .model-sentwebmention.change-list #result_list .field-response_summary {
+        display: none;
+    }
+
+    .model-webmention.change-list #result_list .column-mention_summary,
+    .model-sentwebmention.change-list #result_list .column-delivery_summary {
+        min-width: 18rem;
+        width: auto;
+    }
+}
+
+@media (max-width: 1100px) {
+    .model-webmention.change-list #result_list .column-received_at,
+    .model-webmention.change-list #result_list .field-received_at,
+    .model-sentwebmention.change-list #result_list .column-last_attempt,
+    .model-sentwebmention.change-list #result_list .field-last_attempt {
         display: none;
     }
 }

@@ -236,7 +236,10 @@ div.breadcrumbs a {
 }
 
 .main > #nav-sidebar + .content {
+    flex: 1 1 0;
     max-width: calc(100% - 2.6rem);
+    min-width: 0;
+    width: 0;
 }
 
 .studio-sidebar-heading {
@@ -381,8 +384,10 @@ div.breadcrumbs a {
 /* Content and shared cards */
 
 #content {
+    box-sizing: border-box;
     max-width: 86rem;
     padding: clamp(1rem, 2.5vw, 2rem);
+    width: 100%;
 }
 
 #content > h1,

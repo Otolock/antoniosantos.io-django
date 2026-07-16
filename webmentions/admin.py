@@ -42,7 +42,30 @@ class WebmentionAdmin(admin.ModelAdmin):
         "mark_as_spam",
         "return_to_inbox",
     )
-    readonly_fields = ("source_url", "target_url", "created_at")
+    readonly_fields = ("created_at",)
+    add_fieldsets = (
+        (
+            "Source and destination",
+            {
+                "fields": ("source_url", "target_url"),
+                "description": "Enter the page mentioning your site and the page it links to.",
+            },
+        ),
+        (
+            "Mention details",
+            {
+                "fields": ("author_name", "title", "content"),
+                "description": "Optional display details for the mention.",
+            },
+        ),
+        (
+            "Moderation",
+            {
+                "fields": ("status",),
+                "description": "Choose Approved to show this mention immediately.",
+            },
+        ),
+    )
     fieldsets = (
         (
             "Mention",
@@ -68,8 +91,16 @@ class WebmentionAdmin(admin.ModelAdmin):
     )
     list_per_page = 30
 
-    def has_add_permission(self, request):
-        return False
+    def get_fieldsets(self, request, obj=None):
+        if obj is None:
+            return self.add_fieldsets
+        return super().get_fieldsets(request, obj)
+
+    def get_readonly_fields(self, request, obj=None):
+        fields = list(super().get_readonly_fields(request, obj))
+        if obj is not None:
+            fields.extend(("source_url", "target_url"))
+        return fields
 
     def get_ordering(self, request):
         return (

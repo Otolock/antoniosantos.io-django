@@ -53,6 +53,52 @@ class WebmentionAdminTests(TestCase):
         self.assertContains(response, "Open source")
         self.assertContains(response, "Approve")
         self.assertContains(response, "webmention-stat-tabs")
+        self.assertContains(response, "Add webmention")
+
+    def test_admin_can_add_a_webmention_manually(self):
+        add_url = reverse("admin:webmentions_webmention_add")
+
+        response = self.client.get(add_url)
+
+        self.assertContains(response, "Source and destination")
+        self.assertContains(response, 'name="source_url"')
+        self.assertContains(response, 'name="target_url"')
+
+        response = self.client.post(
+            add_url,
+            {
+                "source_url": "https://manual.example/a-reply/",
+                "target_url": "https://example.com/live-post/",
+                "author_name": "Manual Author",
+                "title": "A manually entered reply",
+                "content": "Added from the admin.",
+                "status": Webmention.APPROVED,
+                "_save": "Save",
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("admin:webmentions_webmention_changelist"),
+        )
+        mention = Webmention.objects.get(source_url="https://manual.example/a-reply/")
+        self.assertEqual(mention.status, Webmention.APPROVED)
+        self.assertEqual(mention.author_name, "Manual Author")
+
+    def test_existing_webmention_urls_remain_read_only(self):
+        mention = Webmention.objects.create(
+            source_url="https://mentioner.example/original/",
+            target_url="https://example.com/original-post/",
+        )
+
+        response = self.client.get(
+            reverse("admin:webmentions_webmention_change", args=[mention.pk])
+        )
+
+        self.assertContains(response, mention.source_url)
+        self.assertContains(response, mention.target_url)
+        self.assertNotContains(response, 'name="source_url"')
+        self.assertNotContains(response, 'name="target_url"')
 
     def test_quick_moderation_updates_status(self):
         mention = Webmention.objects.create(
