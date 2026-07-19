@@ -21,11 +21,11 @@
     {% block head %}
     {% endblock %}
 </head>
-<body class="site-shell">
-    <header class="site-header">
-        <h1 class="site-title">Antonio's Blog</h1>
+<body>
+    <header>
+        <h1>Antonio's Blog</h1>
 
-        <nav class="site-nav" aria-label="Primary navigation">
+        <nav aria-label="Primary navigation">
             <a href="{% url 'blog:home' %}">Home</a>
             <a href="{% url 'blog:now' %}">Now</a>
             <a href="{% url 'blog:archive' %}">Archive</a>
@@ -43,12 +43,12 @@
         </section>
     {% endif %}
 
-    <main class="site-main">
+    <main>
         {% block content %}
         {% endblock %}
     </main>
 
-    <footer class="site-footer">
+    <footer>
         <p>
             <a href="{% url 'blog:subscribe' %}">Subscribe via RSS</a>
             |
