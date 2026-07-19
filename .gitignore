@@ -8,3 +8,5 @@ staticfiles/
 media/
 .DS_Store
 tmp/
+
+blog/static/blog/style.css

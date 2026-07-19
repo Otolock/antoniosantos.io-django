@@ -1,7 +1,13 @@
 @import "tailwindcss" source(none);
+@import "./fonts.css";
 @plugin "@tailwindcss/typography";
 
 @source "../blog/templates";
+
+@theme {
+  --font-atkinson: "Atkinson Hyperlegible Next", system-ui, sans-serif;
+  --font-atkinson-mono: "Atkinson Hyperlegible Mono", ui-monospace, monospace;
+}
 
 @layer base {
   :root {
@@ -52,7 +58,7 @@
     gap: calc(var(--spacing) * 6);
     background: var(--color-cyan-400);
     color: var(--color-zinc-50);
-    font-family: var(--font-serif);
+    font-family: var(--font-atkinson);
   }
 
   .site-header {
@@ -210,7 +216,7 @@
 
   .post-date {
     color: var(--color-zinc-200);
-    font-family: var(--font-mono);
+    font-family: var(--font-atkinson-mono);
     font-size: var(--text-sm);
     line-height: 1.5;
   }
@@ -220,7 +226,7 @@
     border-radius: 0.375rem;
     background: var(--color-zinc-950);
     color: var(--color-zinc-200);
-    font-family: var(--font-mono);
+    font-family: var(--font-atkinson-mono);
     font-size: var(--text-sm);
     line-height: 1.5;
     overflow-wrap: anywhere;
@@ -229,7 +235,7 @@
 
   .post-reply-link {
     color: var(--color-blue-400);
-    font-family: var(--font-mono);
+    font-family: var(--font-atkinson-mono);
     font-weight: var(--font-weight-bold);
     text-decoration: underline;
   }
