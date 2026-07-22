@@ -30,13 +30,26 @@ def published_entries():
 
 
 def home(request):
-    posts = published_entries()[:5]
-    return render(request, "blog/home.html", {"posts": posts})
+    posts = published_posts()[:5]
+    notes = published_notes()[:3]
+    return render(
+        request,
+        "blog/home.html",
+        {"posts": posts, "notes": notes},
+    )
 
 
 def archive(request):
-    posts = published_entries()
+    posts = published_posts()
     return render(request, "blog/archive.html", {"posts": posts})
+
+
+def notes(request):
+    return render(
+        request,
+        "blog/notes.html",
+        {"notes": published_notes()},
+    )
 
 
 def tag_detail(request, slug):

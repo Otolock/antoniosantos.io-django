@@ -13,6 +13,7 @@ from .html import sanitize_html
 RESERVED_POST_SLUGS = {
     "about",
     "now",
+    "notes",
     "archive",
     "rss",
     "feed",

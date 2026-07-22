@@ -1,0 +1,33 @@
+{% extends "blog/base.html" %}
+
+{% block title %}
+Notes
+{% endblock %}
+
+{% block content %}
+<section class="intro-section">
+    <h2 class="page-heading">Notes</h2>
+    <p class="intro-copy">
+        Short updates, observations, and things worth remembering.
+    </p>
+</section>
+
+<section class="h-feed" aria-label="All notes">
+    <div class="home-note-list">
+        {% for note in notes %}
+            <article class="h-entry home-note">
+                <a class="u-url home-note-link" href="{{ note.get_absolute_url }}">
+                    <span class="p-name p-summary home-note-summary">
+                        {{ note.body_html|striptags|truncatewords:40 }}
+                    </span>
+                    <time class="dt-published home-note-date" datetime="{{ note.published_at|date:'c' }}">
+                        {{ note.published_at|date:"M j, Y" }}
+                    </time>
+                </a>
+            </article>
+        {% empty %}
+            <p>No notes yet.</p>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

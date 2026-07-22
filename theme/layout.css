@@ -1,17 +1,21 @@
 @layer base {
   html {
-    background: var(--blog-color-background);
+    background: var(--color-background);
     overflow-x: hidden;
   }
 
   body {
     min-height: 100vh;
-    background: var(--blog-color-background);
-    color: var(--blog-color-text);
-    font-family: var(--blog-font-body);
-    font-size: var(--blog-font-size-body);
-    line-height: var(--blog-line-height-body);
+    background: var(--color-background);
+    color: var(--color-text);
+    font-family: var(--font-body);
+    font-size: var(--text-body);
+    line-height: var(--leading-body);
     text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: var(--color-selection);
   }
 
   :where(a) {
@@ -19,7 +23,7 @@
   }
 
   :where(a, button, input, select, textarea, summary):focus-visible {
-    outline: 2px solid var(--blog-color-accent);
+    outline: 2px solid var(--color-accent);
     outline-offset: 3px;
   }
 }
@@ -28,85 +32,79 @@
   body {
     display: flex;
     width: min(
-      calc(100% - (var(--blog-page-gutter) * 2)),
-      var(--blog-content-width)
+      calc(100% - (var(--spacing-page-gutter) * 2)),
+      var(--container-content)
     );
     margin-inline: auto;
-    padding-block: calc(var(--blog-space-unit) * 8);
+    padding-block: calc(var(--spacing) * 5);
     flex-direction: column;
-    gap: calc(var(--blog-space-unit) * 6);
+    gap: calc(var(--spacing) * 8);
   }
 
   body > header {
     display: flex;
     flex-direction: column;
-    gap: calc(var(--blog-space-unit) * 2);
+    gap: calc(var(--spacing) * 3);
   }
 
   body > header > h1 {
-    color: var(--blog-color-text-strong);
-    font-size: var(--blog-font-size-heading);
-    font-weight: var(--blog-font-weight-bold);
+    color: var(--color-text-strong);
+    font-size: var(--text-heading);
+    font-weight: var(--font-weight-bold);
     letter-spacing: 0;
-    line-height: var(--blog-line-height-heading);
+    line-height: var(--leading-heading);
   }
 
   body > header > nav {
     display: flex;
     flex-wrap: wrap;
-    gap: calc(var(--blog-space-unit) * 2);
-    font-weight: var(--blog-font-weight-bold);
+    align-items: center;
+    gap: calc(var(--spacing) * 4);
   }
 
   body > header > nav a,
   body > footer a {
-    color: var(--blog-color-accent);
-    transition: color var(--blog-transition-fast),
-      background-color var(--blog-transition-fast);
+    color: var(--color-accent);
+    transition: color var(--default-transition-duration)
+      var(--default-transition-timing-function),
+      background-color var(--default-transition-duration)
+      var(--default-transition-timing-function);
   }
 
   body > header > nav a {
-    min-height: 2.75rem;
-    margin-inline-start: calc(var(--blog-space-unit) * -2);
-    border-radius: var(--blog-radius-small);
-    padding: calc(var(--blog-space-unit) * 2);
+    padding-block: var(--spacing);
   }
 
   body > header > nav a:hover,
   body > footer a:hover {
-    color: var(--blog-color-accent-hover);
+    color: var(--color-accent-hover);
   }
 
   body > main {
     display: flex;
     min-width: 0;
     flex-direction: column;
-    gap: calc(var(--blog-space-unit) * 8);
+    gap: calc(var(--spacing) * 9);
   }
 
   body > footer {
-    border-top: 1px solid var(--blog-color-border);
-    padding-top: calc(var(--blog-space-unit) * 6);
-    color: var(--blog-color-text-muted);
-    font-size: var(--blog-font-size-small);
+    padding-block: calc(var(--spacing) * 4);
+    color: var(--color-text-muted);
+    font-size: var(--text-small);
   }
 
   @media (min-width: 40rem) {
     body {
       width: min(
-        calc(100% - (var(--blog-page-gutter-wide) * 2)),
-        var(--blog-content-width)
+        calc(100% - (var(--spacing-page-gutter-wide) * 2)),
+        var(--container-content)
       );
-      padding-block: calc(var(--blog-space-unit) * 12);
-      gap: calc(var(--blog-space-unit) * 8);
-    }
-
-    body > header > h1 {
-      font-size: var(--blog-font-size-heading-large);
+      padding-block: calc(var(--spacing) * 8);
+      gap: calc(var(--spacing) * 9);
     }
 
     body > main {
-      gap: calc(var(--blog-space-unit) * 10);
+      gap: calc(var(--spacing) * 10);
     }
   }
 }

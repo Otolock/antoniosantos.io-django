@@ -3,33 +3,33 @@
   .subscribe-section {
     display: flex;
     flex-direction: column;
-    gap: calc(var(--blog-space-unit) * 2);
+    gap: calc(var(--spacing) * 2);
   }
 
   .now-page {
     display: flex;
     flex-direction: column;
-    gap: calc(var(--blog-space-unit) * 5);
-    margin-block: calc(var(--blog-space-unit) * 2);
+    gap: calc(var(--spacing) * 5);
+    margin-block: calc(var(--spacing) * 2);
   }
 
   .reading-current {
     display: grid;
-    gap: calc(var(--blog-space-unit) * 4);
+    gap: calc(var(--spacing) * 4);
   }
 
   .reading-book {
     display: grid;
     grid-template-columns: 5.5rem minmax(0, 1fr);
     align-items: start;
-    gap: calc(var(--blog-space-unit) * 4);
+    gap: calc(var(--spacing) * 4);
   }
 
   .book-cover {
     aspect-ratio: 2 / 3;
     width: 5.5rem;
-    border: 1px solid var(--blog-color-border);
-    border-radius: var(--blog-radius-small);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-small);
     object-fit: cover;
   }
 
@@ -38,51 +38,53 @@
   }
 
   .book-author {
-    color: var(--blog-color-text-muted);
+    color: var(--color-text-muted);
   }
 
   .reading-note {
-    color: var(--blog-color-text);
-    line-height: var(--blog-line-height-body);
+    color: var(--color-text);
+    line-height: var(--leading-body);
   }
 
   .rss-feed-options {
     display: grid;
-    gap: calc(var(--blog-space-unit) * 3);
-    margin-top: calc(var(--blog-space-unit) * 3);
+    gap: calc(var(--spacing) * 3);
+    margin-top: calc(var(--spacing) * 3);
   }
 
   .rss-feed-card {
     display: flex;
     flex-direction: column;
-    gap: calc(var(--blog-space-unit) * 1.5);
-    border: 1px solid var(--blog-color-border);
-    border-radius: var(--blog-radius-card);
-    background: var(--blog-color-surface);
-    color: var(--blog-color-text);
-    padding: calc(var(--blog-space-unit) * 4);
-    transition: border-color var(--blog-transition-fast),
-      background-color var(--blog-transition-fast);
+    gap: calc(var(--spacing) * 1.5);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+    color: var(--color-text);
+    padding: calc(var(--spacing) * 4);
+    transition: border-color var(--default-transition-duration)
+      var(--default-transition-timing-function),
+      background-color var(--default-transition-duration)
+      var(--default-transition-timing-function);
   }
 
   .rss-feed-card:hover {
-    border-color: var(--blog-color-accent);
-    background: var(--blog-color-accent-soft);
+    border-color: var(--color-accent);
+    background: var(--color-accent-soft);
   }
 
   .rss-feed-card-title {
-    color: var(--blog-color-accent);
-    font-size: var(--blog-font-size-section);
-    font-weight: var(--blog-font-weight-bold);
+    color: var(--color-accent);
+    font-size: var(--text-section);
+    font-weight: var(--font-weight-bold);
   }
 
   .rss-feed-card-description {
-    color: var(--blog-color-text-muted);
+    color: var(--color-text-muted);
   }
 
   .rss-feed-card-url {
-    color: var(--blog-color-text-subtle);
-    font-size: var(--blog-font-size-small);
+    color: var(--color-text-subtle);
+    font-size: var(--text-small);
     overflow-wrap: anywhere;
   }
 
@@ -90,124 +92,127 @@
   .indieauth-error {
     display: flex;
     flex-direction: column;
-    gap: calc(var(--blog-space-unit) * 5);
-    color: var(--blog-color-text);
-    line-height: var(--blog-line-height-body);
+    gap: calc(var(--spacing) * 5);
+    color: var(--color-text);
+    line-height: var(--leading-body);
   }
 
   .indieauth-consent h1,
   .indieauth-error h1 {
-    color: var(--blog-color-text-strong);
-    font-size: var(--blog-font-size-heading);
-    font-weight: var(--blog-font-weight-bold);
-    line-height: var(--blog-line-height-heading);
+    color: var(--color-text-strong);
+    font-size: var(--text-heading);
+    font-weight: var(--font-weight-bold);
+    line-height: var(--leading-heading);
   }
 
   .indieauth-consent h2 {
-    color: var(--blog-color-text-strong);
-    font-size: var(--blog-font-size-section);
-    font-weight: var(--blog-font-weight-bold);
-    line-height: var(--blog-line-height-section);
+    color: var(--color-text-strong);
+    font-size: var(--text-section);
+    font-weight: var(--font-weight-bold);
+    line-height: var(--leading-section);
   }
 
   .indieauth-consent strong {
-    color: var(--blog-color-text-strong);
+    color: var(--color-text-strong);
   }
 
   .indieauth-client {
     display: flex;
     flex-direction: column;
-    gap: calc(var(--blog-space-unit) * 2);
-    border-block: 1px solid var(--blog-color-border);
-    padding-block: calc(var(--blog-space-unit) * 5);
+    gap: calc(var(--spacing) * 2);
+    border-block: 1px solid var(--color-border);
+    padding-block: calc(var(--spacing) * 5);
   }
 
   .indieauth-logo {
     width: 3rem;
     height: 3rem;
-    border-radius: var(--blog-radius-small);
+    border-radius: var(--radius-small);
     object-fit: contain;
   }
 
   .indieauth-client-name {
-    color: var(--blog-color-text-strong);
-    font-size: var(--blog-font-size-section-large);
-    font-weight: var(--blog-font-weight-bold);
+    color: var(--color-text-strong);
+    font-size: var(--text-section-large);
+    font-weight: var(--font-weight-bold);
     line-height: 1.25;
   }
 
   .indieauth-client a {
-    color: var(--blog-color-accent);
+    color: var(--color-accent);
     overflow-wrap: anywhere;
     text-decoration: underline;
     text-underline-offset: 0.15em;
   }
 
   .indieauth-client a:hover {
-    color: var(--blog-color-accent-hover);
+    color: var(--color-accent-hover);
   }
 
   .indieauth-client-id,
   .indieauth-redirect {
-    color: var(--blog-color-text-muted);
-    font-size: var(--blog-font-size-small);
+    color: var(--color-text-muted);
+    font-size: var(--text-small);
     overflow-wrap: anywhere;
   }
 
   .indieauth-scopes {
     display: flex;
     flex-wrap: wrap;
-    gap: calc(var(--blog-space-unit) * 2);
+    gap: calc(var(--spacing) * 2);
   }
 
   .indieauth-scopes li {
-    border: 1px solid var(--blog-color-border);
-    border-radius: var(--blog-radius-small);
-    color: var(--blog-color-text);
-    padding: calc(var(--blog-space-unit) * 1.5)
-      calc(var(--blog-space-unit) * 2.5);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-small);
+    color: var(--color-text);
+    padding: calc(var(--spacing) * 1.5)
+      calc(var(--spacing) * 2.5);
   }
 
   .indieauth-consent code {
-    color: var(--blog-color-text-strong);
+    color: var(--color-text-strong);
     overflow-wrap: anywhere;
   }
 
   .indieauth-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: calc(var(--blog-space-unit) * 3);
+    gap: calc(var(--spacing) * 3);
   }
 
   .indieauth-actions button {
     min-height: 2.75rem;
-    border: 1px solid var(--blog-color-border);
-    border-radius: var(--blog-radius-small);
-    color: var(--blog-color-accent);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-small);
+    color: var(--color-accent);
     cursor: pointer;
-    font-weight: var(--blog-font-weight-bold);
-    padding: calc(var(--blog-space-unit) * 2)
-      calc(var(--blog-space-unit) * 4);
-    transition: background-color var(--blog-transition-fast),
-      border-color var(--blog-transition-fast),
-      color var(--blog-transition-fast);
+    font-weight: var(--font-weight-bold);
+    padding: calc(var(--spacing) * 2)
+      calc(var(--spacing) * 4);
+    transition: background-color var(--default-transition-duration)
+      var(--default-transition-timing-function),
+      border-color var(--default-transition-duration)
+      var(--default-transition-timing-function),
+      color var(--default-transition-duration)
+      var(--default-transition-timing-function);
   }
 
   .indieauth-actions button:hover {
-    border-color: var(--blog-color-accent);
-    color: var(--blog-color-accent-hover);
+    border-color: var(--color-accent);
+    color: var(--color-accent-hover);
   }
 
   .indieauth-actions .btn-primary {
-    border-color: var(--blog-color-accent);
-    background: var(--blog-color-accent);
-    color: var(--blog-color-on-accent);
+    border-color: var(--color-accent);
+    background: var(--color-accent);
+    color: var(--color-on-accent);
   }
 
   .indieauth-actions .btn-primary:hover {
-    border-color: var(--blog-color-accent-hover);
-    background: var(--blog-color-accent-hover);
-    color: var(--blog-color-on-accent);
+    border-color: var(--color-accent-hover);
+    background: var(--color-accent-hover);
+    color: var(--color-on-accent);
   }
 
   @media (min-width: 40rem) {
@@ -225,7 +230,7 @@
     }
 
     .book-meta {
-      margin-top: calc(var(--blog-space-unit) * 4);
+      margin-top: calc(var(--spacing) * 4);
     }
   }
 }

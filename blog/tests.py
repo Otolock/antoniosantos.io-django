@@ -81,16 +81,18 @@ class PostTests(TestCase):
         self.assertFalse(unpublished_post.is_published)
 
     def test_reserved_slugs_are_rejected_by_model_validation(self):
-        post = Post(
-            title="About",
-            slug="about",
-            body="This slug conflicts with a site route.",
-        )
+        for slug in ("about", "notes"):
+            with self.subTest(slug=slug):
+                post = Post(
+                    title=slug.title(),
+                    slug=slug,
+                    body="This slug conflicts with a site route.",
+                )
 
-        with self.assertRaises(ValidationError) as context:
-            post.full_clean()
+                with self.assertRaises(ValidationError) as context:
+                    post.full_clean()
 
-        self.assertIn("slug", context.exception.error_dict)
+                self.assertIn("slug", context.exception.error_dict)
 
     def test_save_sets_publish_date_when_published_without_date(self):
         post = self.make_post(
@@ -205,7 +207,7 @@ class PostViewTests(TestCase):
 
         response = self.client.get(reverse("blog:home"))
 
-        self.assertContains(response, 'class="h-feed post-list"')
+        self.assertContains(response, 'class="h-feed home-section"')
         self.assertContains(response, 'class="p-name section-heading"')
         self.assertContains(response, 'class="h-entry post-list-item"')
         self.assertContains(response, 'class="p-name u-url"')
@@ -222,8 +224,10 @@ class PostViewTests(TestCase):
 
         response = self.client.get(reverse("blog:home"))
 
-        self.assertContains(response, "note-list-item")
-        self.assertContains(response, "A <strong>quick</strong> note.")
+        self.assertContains(response, "Recent notes")
+        self.assertContains(response, 'class="h-entry home-note"')
+        self.assertContains(response, "A quick note.")
+        self.assertNotContains(response, "note-list-item")
         self.assertContains(response, note.get_absolute_url())
 
     def test_archive_lists_all_published_posts_with_current_publish_dates(self):
@@ -243,6 +247,11 @@ class PostViewTests(TestCase):
             slug="scheduled-post",
             published_at=timezone.now() + timezone.timedelta(days=1),
         )
+        Note.objects.create(
+            body="A note that belongs in the notes index.",
+            status=Note.PUBLISHED,
+            published_at=timezone.now(),
+        )
 
         response = self.client.get(reverse("blog:archive"))
 
@@ -250,6 +259,7 @@ class PostViewTests(TestCase):
         self.assertContains(response, "Older post")
         self.assertNotContains(response, "Draft post")
         self.assertNotContains(response, "Scheduled post")
+        self.assertNotContains(response, "A note that belongs in the notes index.")
 
     def test_archive_marks_posts_as_microformats_feed_entries(self):
         self.make_post()
@@ -264,6 +274,31 @@ class PostViewTests(TestCase):
         self.assertContains(response, 'class="dt-published"')
         self.assertContains(response, 'class="p-name u-url"')
         self.assertContains(response, 'class="p-summary"')
+
+    def test_notes_index_lists_only_published_notes(self):
+        live_note = Note.objects.create(
+            body="A live note.",
+            status=Note.PUBLISHED,
+            published_at=timezone.now(),
+        )
+        Note.objects.create(
+            body="A draft note.",
+            status=Note.DRAFT,
+        )
+        Note.objects.create(
+            body="A scheduled note.",
+            status=Note.PUBLISHED,
+            published_at=timezone.now() + timezone.timedelta(days=1),
+        )
+
+        response = self.client.get(reverse("blog:notes"))
+
+        self.assertContains(response, "A live note.")
+        self.assertContains(response, live_note.get_absolute_url())
+        self.assertContains(response, 'class="h-entry home-note"')
+        self.assertContains(response, 'class="dt-published home-note-date"')
+        self.assertNotContains(response, "A draft note.")
+        self.assertNotContains(response, "A scheduled note.")
 
     def test_post_detail_renders_live_post_markdown(self):
         self.make_post()
@@ -828,6 +863,7 @@ class SitemapTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("https://example.com/", content)
         self.assertIn("https://example.com/archive/", content)
+        self.assertIn("https://example.com/notes/", content)
         self.assertIn("https://example.com/now/", content)
         self.assertIn("https://example.com/subscribe.html", content)
         self.assertIn("https://example.com/live-post/", content)

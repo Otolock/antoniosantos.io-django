@@ -20,6 +20,7 @@ sitemaps = {
 urlpatterns = [
     path("", views.home, name="home"),
     path("archive/", views.archive, name="archive"),
+    path("notes/", views.notes, name="notes"),
     path("now/", views.now, name="now"),
     path("post/<slug:slug>/", views.legacy_post_redirect, name="legacy_post_detail"),
     path("posts/<slug:slug>/", views.legacy_post_redirect, name="legacy_posts_detail"),

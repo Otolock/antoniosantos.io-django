@@ -1,55 +1,67 @@
 {% extends "blog/base.html" %}
 
 {% block title %}
-Antonio's Blog
+༼ つ ◕_◕ ༽つ Antonio's Blog
 {% endblock %}
 
 {% block content %}
 <section class="h-card intro-section">
-    <h2 class="page-heading">Hi, I'm <span class="p-name">Antonio Santos</span> 👋<data class="u-url" value="{% url 'blog:home' %}"></data></h2>
+    <h2 class="text-4xl font-bold">👋 Hi, I'm <span class="p-name">Antonio Santos</span><data class="u-url" value="{% url 'blog:home' %}"></data></h2>
     <p>
-        Welcome to my little corner of the internet where I write about technology, photography, travel, books, and whatever else catches my attention.
+        Welcome to my little corner of the internet, where I write about technology, photography, travel, books, and whatever else catches my attention.
     </p>
 </section>
 
-<section class="h-feed post-list">
+<section class="h-feed home-section">
     <h2 class="p-name section-heading">Latest posts</h2>
 
-    {% for post in posts %}
-        <article class="h-entry post-list-item{% if post.is_note %} note-list-item{% endif %}">
-            {% if post.is_note %}
-                <p class="post-date note-date">
-                    <a class="p-name u-url" href="{{ post.get_absolute_url }}">
-                        <time class="dt-published" datetime="{{ post.published_at|date:'c' }}">
-                            {{ post.published_at|date:"F j, Y \a\t g:i A" }}
-                        </time>
+    <ul class="home-post-list">
+        {% for post in posts %}
+            <li>
+                <article class="h-entry post-list-item">
+                    <a class="p-name u-url" href="{% url 'blog:post_detail' post.slug %}">
+                        {{ post.title }}
                     </a>
-                </p>
-                <div class="e-content p-summary prose prose-invert note-prose">{{ post.body_html|safe }}</div>
-            {% else %}
-            <h2 class="post-list-title">
-                <a class="p-name u-url" href="{% url 'blog:post_detail' post.slug %}">
-                    {{ post.title }}
-                </a>
-            </h2>
-
-            <p class="post-date">
-                <time class="dt-published" datetime="{{ post.published_at|date:'c' }}">
-                    {{ post.published_at|date:"F j, Y" }}
-                </time>
-            </p>
-
-            {% if post.description %}
-                <p class="p-summary">{{ post.description }}</p>
-            {% endif %}
-            {% endif %}
-        </article>
-    {% empty %}
-        <p>No posts yet.</p>
-    {% endfor %}
+                    <span class="sr-only">
+                        Published
+                        <time class="dt-published" datetime="{{ post.published_at|date:'c' }}">
+                            {{ post.published_at|date:"F j, Y" }}
+                        </time>
+                    </span>
+                    {% if post.description %}
+                        <data class="p-summary" value="{{ post.description }}"></data>
+                    {% endif %}
+                </article>
+            </li>
+        {% empty %}
+            <li>No posts yet.</li>
+        {% endfor %}
+    </ul>
 </section>
 
-<p>
-    <a class="text-link" href="{% url 'blog:archive' %}">View the archive ></a>
-</p>
+{% if notes %}
+<section class="h-feed home-section">
+    <h2 class="p-name section-heading">Recent notes</h2>
+
+    <div class="home-note-list">
+        {% for note in notes %}
+            <article class="h-entry home-note">
+                <a class="u-url home-note-link" href="{{ note.get_absolute_url }}">
+                    <span class="p-name p-summary home-note-summary">
+                        {{ note.body_html|striptags|truncatewords:24 }}
+                    </span>
+                    <time class="dt-published home-note-date" datetime="{{ note.published_at|date:'c' }}">
+                        {{ note.published_at|date:"M j" }}
+                    </time>
+                </a>
+            </article>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<nav class="home-index-links" aria-label="Content indexes">
+    <a class="text-link" href="{% url 'blog:archive' %}">Post archive →</a>
+    <a class="text-link" href="{% url 'blog:notes' %}">All notes →</a>
+</nav>
 {% endblock %}
