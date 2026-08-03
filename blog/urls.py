@@ -22,6 +22,7 @@ urlpatterns = [
     path("archive/", views.archive, name="archive"),
     path("notes/", views.notes, name="notes"),
     path("now/", views.now, name="now"),
+    path("blogroll/", views.blogroll, name="blogroll"),
     path("post/<slug:slug>/", views.legacy_post_redirect, name="legacy_post_detail"),
     path("posts/<slug:slug>/", views.legacy_post_redirect, name="legacy_posts_detail"),
     path("rss.xml", LatestPostsFeed(), name="rss"),

@@ -15,6 +15,7 @@ class StaticViewSitemap(Sitemap):
             "blog:now",
             "blog:archive",
             "blog:notes",
+            "blog:blogroll",
             "blog:subscribe",
         ]
 

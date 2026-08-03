@@ -1,0 +1,61 @@
+{% extends "blog/base.html" %}
+
+{% block title %}Links · Antonio's Blog{% endblock %}
+
+{% block content %}
+<section class="links-page">
+    <header class="links-hero">
+        <div>
+            <p class="links-kicker"><span aria-hidden="true">✳</span> A small corner of the web</p>
+            <h2 class="p-name links-title">Links I keep coming back to</h2>
+        </div>
+
+        <div class="links-hero-copy">
+            <p>
+                A hand-picked collection of people, places, and ideas that make
+                the internet feel a little more human.
+            </p>
+            <p class="links-count">{{ link_count }} links · updated as I wander</p>
+        </div>
+    </header>
+
+    <div class="links-groups">
+        {% for group in link_groups %}
+            <section class="link-group">
+                <header class="link-group-header">
+                    <div>
+                        <p class="link-group-eyebrow">{{ group.eyebrow }}</p>
+                        <h3 class="section-heading">{{ group.title }}</h3>
+                    </div>
+                    <p class="link-group-description">{{ group.description }}</p>
+                </header>
+
+                <div class="link-grid{% if forloop.first %} link-grid-compact{% endif %}">
+                    {% for link in group.links %}
+                        <a class="link-card{% if not link.description %} link-card-compact{% endif %}" href="{{ link.url }}" target="_blank" rel="noopener noreferrer">
+                            {% if not link.description %}
+                                <span class="link-card-mark" aria-hidden="true">{{ link.initial }}</span>
+                            {% endif %}
+                            <span class="link-card-content">
+                                <span class="link-card-title">{{ link.title }}</span>
+                                {% if link.description %}
+                                    <span class="link-card-description">{{ link.description }}</span>
+                                {% endif %}
+                                <span class="link-card-domain">{{ link.domain }}</span>
+                            </span>
+                            <span class="link-card-arrow" aria-hidden="true">↗</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            </section>
+        {% endfor %}
+    </div>
+
+    <aside class="links-note">
+        <span class="links-note-mark" aria-hidden="true">♥</span>
+        <p>
+            Found something good? <a href="https://thoughts.melonking.net/thoughts/every-site-needs-a-links-page-why-linking-matters">Linking is a love language</a> — send me your favourites.
+        </p>
+    </aside>
+</section>
+{% endblock %}
