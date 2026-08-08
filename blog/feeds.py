@@ -55,7 +55,7 @@ class LatestPostsFeed(Feed):
         return item.display_title if isinstance(item, Note) else item.title
 
     def item_description(self, item):
-        return item.body_html if isinstance(item, Note) else item.description
+        return item.body_html
 
     def item_link(self, item):
         return site_url(item.get_absolute_url())
@@ -83,4 +83,4 @@ class PostsOnlyFeed(LatestPostsFeed):
         return Post.objects.filter(
             status=Post.PUBLISHED,
             published_at__lte=timezone.now(),
-        )[:20]
+        )

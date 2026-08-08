@@ -8,6 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 import tempfile
 from unittest.mock import patch
+from xml.etree import ElementTree
 
 from . import llm
 from .admin import PostAdmin
@@ -677,9 +678,41 @@ class LatestPostsFeedTests(TestCase):
         response = self.client.get(reverse("blog:rss"))
 
         self.assertContains(response, "Live post")
-        self.assertContains(response, "A live post")
+        self.assertContains(response, "Hello")
+        self.assertNotContains(response, "A live post")
         self.assertNotContains(response, "Draft post")
         self.assertNotContains(response, "Scheduled post")
+
+    def test_rss_feeds_include_full_post_content(self):
+        self.make_post(
+            body="First paragraph.\n\nSecond paragraph with **formatting**.",
+            description="Short summary",
+        )
+
+        for feed_name in ("blog:rss", "blog:posts_rss"):
+            with self.subTest(feed_name=feed_name):
+                response = self.client.get(reverse(feed_name))
+                feed = ElementTree.fromstring(response.content)
+                description = feed.findtext("./channel/item/description")
+
+                self.assertEqual(
+                    description,
+                    "<p>First paragraph.</p>\n<p>Second paragraph with "
+                    "<strong>formatting</strong>.</p>",
+                )
+                self.assertNotContains(response, "Short summary")
+
+    def test_posts_only_rss_includes_all_published_posts(self):
+        for index in range(21):
+            self.make_post(
+                title=f"Post {index}",
+                slug=f"post-{index}",
+                published_at=timezone.now() - timezone.timedelta(minutes=index),
+            )
+
+        response = self.client.get(reverse("blog:posts_rss"))
+
+        self.assertContains(response, "Post 20")
 
     @override_settings(ALLOWED_HOSTS=["example.com"], SITE_URL="https://example.com")
     def test_rss_includes_published_notes(self):
