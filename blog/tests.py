@@ -940,6 +940,27 @@ class SitemapTests(TestCase):
 
 
 class PostMediaTests(TestCase):
+    @override_settings(STORAGES=TEST_STORAGES)
+    def test_uploaded_media_uses_generated_filename(self):
+        with tempfile.TemporaryDirectory() as media_root, self.settings(
+            MEDIA_ROOT=media_root
+        ):
+            media = PostMedia.objects.create(
+                title="Puerto Rican tody",
+                file=SimpleUploadedFile(
+                    "private-location_DSC-0042.JPG",
+                    b"image contents",
+                    content_type="image/jpeg",
+                ),
+            )
+
+        self.assertRegex(
+            media.file.name,
+            r"^blog/media/\d{4}/\d{2}/[0-9a-f]{32}\.jpg$",
+        )
+        self.assertNotIn("private-location", media.file.name)
+        self.assertNotIn("DSC-0042", media.file.name)
+
     def test_media_slug_is_generated_from_title_when_blank(self):
         media = PostMedia.objects.create(
             title="Hero Photo",
@@ -1043,6 +1064,8 @@ class PostAdminTests(TestCase):
         self.assertContains(response, media.title)
         self.assertContains(response, media.alt_text)
         self.assertContains(response, "data-media-workbench")
+        self.assertContains(response, '<details class="post-media"')
+        self.assertContains(response, '<span data-media-count>1</span>')
 
     def test_composer_can_upload_multiple_photos(self):
         with tempfile.TemporaryDirectory() as media_root, self.settings(MEDIA_ROOT=media_root):
@@ -1069,6 +1092,10 @@ class PostAdminTests(TestCase):
         self.assertEqual(len(payload["media"]), 2)
         self.assertEqual(payload["media"][0]["title"], "Puerto Rican Tody")
         self.assertTrue(payload["media"][0]["is_image"])
+        self.assertRegex(
+            payload["media"][0]["filename"],
+            r"^[0-9a-f]{32}\.jpg$",
+        )
         self.assertEqual(PostMedia.objects.count(), 2)
 
     def test_composer_rejects_unsupported_image_formats(self):

@@ -1,9 +1,25 @@
 {% include "django/forms/widgets/textarea.html" %}
 
-<section class="post-media" data-media-workbench data-upload-url="{{ media_upload_url }}">
+{% with media_count=media_items|length %}
+<details class="post-media" data-media-workbench data-upload-url="{{ media_upload_url }}">
+  <summary class="post-media__summary">
+    <span class="post-media__summary-copy">
+      <strong>Photo library</strong>
+      <span>Upload, describe, and insert photographs</span>
+    </span>
+    <span class="post-media__summary-meta">
+      <span class="post-media__count">
+        <span data-media-count>{{ media_count }}</span>
+        <span data-media-count-unit>photo{{ media_count|pluralize }}</span>
+      </span>
+      <span class="post-media__chevron" aria-hidden="true"></span>
+    </span>
+  </summary>
+
+  <div class="post-media__content">
   <header class="post-media__header">
     <div>
-      <h2>Photo library</h2>
+      <h2>Add photographs</h2>
       <p>Upload photographs, improve their alt text, then insert them wherever you are writing.</p>
     </div>
     <label class="button post-media__upload">
@@ -80,4 +96,6 @@
       </div>
     {% endfor %}
   </div>
-</section>
+  </div>
+</details>
+{% endwith %}

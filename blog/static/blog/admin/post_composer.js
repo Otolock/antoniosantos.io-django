@@ -7,6 +7,7 @@
   }
 
   function initComposer(workbench) {
+    const collapseStorageKey = "blog.post-media-workbench.open";
     const body = document.querySelector(".post-composer__body");
     const grid = workbench.querySelector("[data-media-grid]");
     const upload = workbench.querySelector("[data-media-upload]");
@@ -15,8 +16,25 @@
     const selectionCount = workbench.querySelector("[data-selection-count]");
     const status = workbench.querySelector("[data-media-status]");
     const writingStats = workbench.querySelector("[data-writing-stats]");
+    const mediaCount = workbench.querySelector("[data-media-count]");
+    const mediaCountUnit = workbench.querySelector("[data-media-count-unit]");
 
     if (!body || !grid) return;
+
+    try {
+      workbench.open = window.localStorage.getItem(collapseStorageKey) === "true";
+      workbench.addEventListener("toggle", function () {
+        window.localStorage.setItem(collapseStorageKey, String(workbench.open));
+      });
+    } catch (error) {
+      // The native details control remains fully functional if storage is unavailable.
+    }
+
+    function updateMediaCount() {
+      const count = grid.querySelectorAll("[data-media-card]").length;
+      mediaCount.textContent = String(count);
+      mediaCountUnit.textContent = count === 1 ? "photo" : "photos";
+    }
 
     function setStatus(message, isError) {
       status.textContent = message || "";
@@ -214,6 +232,7 @@
           const existing = grid.querySelector(`[data-media-id="${escapeSelector(String(item.id))}"]`);
           if (!existing) grid.prepend(cardMarkup(item));
         });
+        updateMediaCount();
         const errorText = result.errors && result.errors.length
           ? ` ${result.errors.join(" ")}`
           : "";
@@ -229,6 +248,7 @@
     body.addEventListener("input", updateWritingStats);
     updateSelection();
     updateWritingStats();
+    updateMediaCount();
   }
 
   function init() {

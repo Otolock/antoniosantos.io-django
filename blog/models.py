@@ -1,3 +1,6 @@
+import secrets
+from pathlib import Path
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -5,7 +8,6 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
 from markdown import markdown
-from pathlib import Path
 
 from .html import sanitize_html
 
@@ -311,6 +313,11 @@ class PostMedia(models.Model):
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = self._generate_unique_slug()
+
+        if self.file and not self.file._committed:
+            extension = Path(self.file.name).suffix.lower()
+            self.file.name = f"{secrets.token_hex(16)}{extension}"
+
         super().save(*args, **kwargs)
 
     def _generate_unique_slug(self):
