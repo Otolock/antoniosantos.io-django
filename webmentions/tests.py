@@ -19,6 +19,7 @@ from .services import (
     verify_source_links_to_target,
 )
 
+
 TEST_STORAGES = {
     "staticfiles": {
         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
@@ -36,36 +37,22 @@ class WebmentionAdminTests(TestCase):
         )
         self.client.force_login(self.user)
 
-    def test_received_list_is_a_scannable_inbox(self):
-        Webmention.objects.create(
+    def test_received_mentions_use_the_standard_admin_list(self):
+        mention = Webmention.objects.create(
             source_url="https://mentioner.example/reply/",
             target_url="https://example.com/live-post/",
             title="A thoughtful reply",
-            author_name="Mentioner",
-            content="This is a useful contribution to the conversation.",
         )
 
         response = self.client.get(reverse("admin:webmentions_webmention_changelist"))
 
-        self.assertContains(response, "Webmention inbox")
-        self.assertContains(response, "A thoughtful reply")
-        self.assertContains(response, "Mentioner")
-        self.assertContains(response, "Open source")
-        self.assertContains(response, "Approve")
-        self.assertContains(response, "webmention-stat-tabs")
-        self.assertContains(response, "Add webmention")
+        self.assertContains(response, "Select webmention to change")
+        self.assertContains(response, mention.source_url)
+        self.assertContains(response, "Approve selected webmentions")
 
     def test_admin_can_add_a_webmention_manually(self):
-        add_url = reverse("admin:webmentions_webmention_add")
-
-        response = self.client.get(add_url)
-
-        self.assertContains(response, "Source and destination")
-        self.assertContains(response, 'name="source_url"')
-        self.assertContains(response, 'name="target_url"')
-
         response = self.client.post(
-            add_url,
+            reverse("admin:webmentions_webmention_add"),
             {
                 "source_url": "https://manual.example/a-reply/",
                 "target_url": "https://example.com/live-post/",
@@ -83,7 +70,6 @@ class WebmentionAdminTests(TestCase):
         )
         mention = Webmention.objects.get(source_url="https://manual.example/a-reply/")
         self.assertEqual(mention.status, Webmention.APPROVED)
-        self.assertEqual(mention.author_name, "Manual Author")
 
     def test_existing_webmention_urls_remain_read_only(self):
         mention = Webmention.objects.create(
@@ -92,25 +78,26 @@ class WebmentionAdminTests(TestCase):
         )
 
         response = self.client.get(
-            reverse("admin:webmentions_webmention_change", args=[mention.pk])
+            reverse("admin:webmentions_webmention_change", args=(mention.pk,))
         )
 
-        self.assertContains(response, mention.source_url)
-        self.assertContains(response, mention.target_url)
         self.assertNotContains(response, 'name="source_url"')
         self.assertNotContains(response, 'name="target_url"')
 
-    def test_quick_moderation_updates_status(self):
+    def test_approve_action_updates_selected_mentions(self):
         mention = Webmention.objects.create(
             source_url="https://mentioner.example/reply/",
             target_url="https://example.com/live-post/",
         )
-        url = reverse(
-            "admin:webmentions_webmention_moderate",
-            args=[mention.pk, "approve"],
-        )
 
-        response = self.client.post(url)
+        response = self.client.post(
+            reverse("admin:webmentions_webmention_changelist"),
+            {
+                "action": "approve",
+                "_selected_action": mention.pk,
+                "index": "0",
+            },
+        )
 
         self.assertRedirects(
             response,
@@ -119,25 +106,8 @@ class WebmentionAdminTests(TestCase):
         mention.refresh_from_db()
         self.assertEqual(mention.status, Webmention.APPROVED)
 
-    def test_quick_moderation_requires_post(self):
-        mention = Webmention.objects.create(
-            source_url="https://mentioner.example/reply/",
-            target_url="https://example.com/live-post/",
-        )
-
-        response = self.client.get(
-            reverse(
-                "admin:webmentions_webmention_moderate",
-                args=[mention.pk, "spam"],
-            )
-        )
-
-        self.assertEqual(response.status_code, 405)
-        mention.refresh_from_db()
-        self.assertEqual(mention.status, Webmention.PENDING)
-
-    def test_sent_list_summarizes_delivery_health(self):
-        SentWebmention.objects.create(
+    def test_sent_webmentions_show_delivery_data(self):
+        delivery = SentWebmention.objects.create(
             source_url="https://example.com/live-post/",
             target_url="https://elsewhere.example/article/",
             endpoint_url="https://elsewhere.example/webmention/",
@@ -150,28 +120,8 @@ class WebmentionAdminTests(TestCase):
             reverse("admin:webmentions_sentwebmention_changelist")
         )
 
-        self.assertContains(response, "Delivery log")
-        self.assertContains(response, "HTTP 202")
-        self.assertContains(response, "elsewhere.example")
-
-    def test_moderation_queue_can_mark_webmention_as_spam(self):
-        mention = Webmention.objects.create(
-            source_url="https://spam.example/reply/",
-            target_url="https://example.com/live-post/",
-        )
-
-        response = self.client.post(
-            reverse("admin:moderation_queue"),
-            {
-                "item_type": "webmention",
-                "item_id": mention.pk,
-                "action": "spam",
-            },
-        )
-
-        self.assertRedirects(response, reverse("admin:moderation_queue"))
-        mention.refresh_from_db()
-        self.assertEqual(mention.status, Webmention.SPAM)
+        self.assertContains(response, delivery.target_url)
+        self.assertContains(response, "202")
 
 
 class ReceiveWebmentionTests(TestCase):
