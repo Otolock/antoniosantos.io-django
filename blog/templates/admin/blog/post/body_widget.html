@@ -1,0 +1,83 @@
+{% include "django/forms/widgets/textarea.html" %}
+
+<section class="post-media" data-media-workbench data-upload-url="{{ media_upload_url }}">
+  <header class="post-media__header">
+    <div>
+      <h2>Photo library</h2>
+      <p>Upload photographs, improve their alt text, then insert them wherever you are writing.</p>
+    </div>
+    <label class="button post-media__upload">
+      <span>Upload photos</span>
+      <input type="file" accept=".avif,.gif,.jpeg,.jpg,.png,.webp" multiple data-media-upload hidden>
+    </label>
+  </header>
+
+  <div class="post-media__toolbar">
+    <label class="post-media__search">
+      <span class="visually-hidden">Search media</span>
+      <input type="search" placeholder="Search photos by title, alt text, or filename" data-media-search>
+    </label>
+    <button type="button" class="button" data-insert-selected disabled>
+      Insert selected <span data-selection-count>0</span>
+    </button>
+    <span class="post-media__writing-stats" data-writing-stats aria-live="polite"></span>
+  </div>
+
+  <p class="post-media__status" data-media-status aria-live="polite"></p>
+
+  <div class="post-media__grid" data-media-grid>
+    {% for media in media_items %}
+      <article
+        class="post-media-card"
+        data-media-card
+        data-media-id="{{ media.pk }}"
+        data-media-title="{{ media.title }}"
+        data-media-alt="{{ media.alt_text }}"
+        data-media-filename="{{ media.file.name }}"
+        data-media-url="{{ media.file.url }}"
+        data-media-image="{{ media.is_image|yesno:'true,false' }}"
+        data-media-update-url="{% url 'admin:blog_postmedia_composer_metadata' media.pk %}"
+      >
+        <label class="post-media-card__select" title="Select {{ media.title }}">
+          <input type="checkbox" data-media-select>
+          <span class="visually-hidden">Select {{ media.title }}</span>
+        </label>
+        <div class="post-media-card__preview">
+          {% if media.is_image %}
+            <img src="{{ media.file.url }}" alt="" loading="lazy">
+          {% else %}
+            <span class="post-media-card__file">FILE</span>
+          {% endif %}
+        </div>
+        <div class="post-media-card__body">
+          <strong class="post-media-card__title" data-card-title>{{ media.title }}</strong>
+          <p class="post-media-card__alt{% if not media.alt_text %} is-missing{% endif %}" data-card-alt>
+            {% if media.alt_text %}{{ media.alt_text }}{% else %}Alt text needed{% endif %}
+          </p>
+          <div class="post-media-card__actions">
+            <button type="button" class="button" data-insert-one>Insert</button>
+            <details>
+              <summary>Edit details</summary>
+              <div class="post-media-card__editor">
+                <label>
+                  Title
+                  <input type="text" maxlength="200" value="{{ media.title }}" data-media-title-input>
+                </label>
+                <label>
+                  Alt text
+                  <textarea maxlength="200" rows="3" data-media-alt-input placeholder="Describe what is visible and meaningful in the photo">{{ media.alt_text }}</textarea>
+                </label>
+                <button type="button" class="button" data-save-media>Save details</button>
+              </div>
+            </details>
+          </div>
+        </div>
+      </article>
+    {% empty %}
+      <div class="post-media__empty" data-media-empty>
+        <strong>Your photo library is empty.</strong>
+        <span>Upload a few photographs to start building this post.</span>
+      </div>
+    {% endfor %}
+  </div>
+</section>

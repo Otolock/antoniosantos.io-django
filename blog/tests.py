@@ -1029,6 +1029,105 @@ class PostAdminTests(TestCase):
                 for field in fields:
                     self.assertContains(response, f'name="{field}"')
 
+    def test_post_form_includes_searchable_media_library(self):
+        media = PostMedia.objects.create(
+            title="Puerto Rican tody",
+            alt_text="A green tody perched on a thin branch",
+            file="blog/media/2026/08/tody.jpg",
+        )
+
+        response = self.client.get(reverse("admin:blog_post_add"))
+
+        self.assertContains(response, "Photo library")
+        self.assertContains(response, "Upload photos")
+        self.assertContains(response, media.title)
+        self.assertContains(response, media.alt_text)
+        self.assertContains(response, "data-media-workbench")
+
+    def test_composer_can_upload_multiple_photos(self):
+        with tempfile.TemporaryDirectory() as media_root, self.settings(MEDIA_ROOT=media_root):
+            response = self.client.post(
+                reverse("admin:blog_postmedia_composer_upload"),
+                {
+                    "files": [
+                        SimpleUploadedFile(
+                            "Puerto_Rican_Tody.jpg",
+                            b"first image",
+                            content_type="image/jpeg",
+                        ),
+                        SimpleUploadedFile(
+                            "bananaquit.png",
+                            b"second image",
+                            content_type="image/png",
+                        ),
+                    ]
+                },
+            )
+
+        self.assertEqual(response.status_code, 201)
+        payload = response.json()
+        self.assertEqual(len(payload["media"]), 2)
+        self.assertEqual(payload["media"][0]["title"], "Puerto Rican Tody")
+        self.assertTrue(payload["media"][0]["is_image"])
+        self.assertEqual(PostMedia.objects.count(), 2)
+
+    def test_composer_rejects_unsupported_image_formats(self):
+        response = self.client.post(
+            reverse("admin:blog_postmedia_composer_upload"),
+            {
+                "files": SimpleUploadedFile(
+                    "unsafe.svg",
+                    b"<svg></svg>",
+                    content_type="image/svg+xml",
+                )
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("not a supported image", response.json()["error"])
+        self.assertFalse(PostMedia.objects.exists())
+
+    def test_composer_can_update_photo_alt_text(self):
+        media = PostMedia.objects.create(
+            title="Tody",
+            file="blog/media/2026/08/tody.jpg",
+        )
+
+        response = self.client.post(
+            reverse("admin:blog_postmedia_composer_metadata", args=[media.pk]),
+            {
+                "title": "Puerto Rican tody",
+                "alt_text": "A small green tody facing left on a mossy branch",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        media.refresh_from_db()
+        self.assertEqual(media.title, "Puerto Rican tody")
+        self.assertEqual(
+            media.alt_text,
+            "A small green tody facing left on a mossy branch",
+        )
+        self.assertIn(media.alt_text, response.json()["media"]["markdown"])
+
+    def test_media_list_highlights_photos_missing_alt_text(self):
+        PostMedia.objects.create(
+            title="Tody",
+            file="blog/media/2026/08/tody.jpg",
+        )
+        PostMedia.objects.create(
+            title="Bananaquit",
+            alt_text="A bananaquit drinking nectar from a red flower",
+            file="blog/media/2026/08/bananaquit.jpg",
+        )
+
+        response = self.client.get(reverse("admin:blog_postmedia_changelist"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Needs alt text")
+        self.assertContains(response, "A bananaquit drinking nectar")
+        self.assertContains(response, "media-admin-preview")
+
     @patch("blog.admin.send_webmentions_for_post_async")
     def test_publish_action_publishes_post_and_sends_webmentions(self, send):
         post = Post.objects.create(
