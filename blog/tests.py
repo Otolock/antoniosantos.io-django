@@ -827,7 +827,7 @@ class LatestPostsFeedTests(TestCase):
         SITE_URL="https://example.com",
         STORAGES=TEST_STORAGES,
     )
-    def test_combined_rss_includes_sightings_and_their_primary_photo(self):
+    def test_combined_rss_includes_full_sighting_content_and_all_photos(self):
         bird = Bird.objects.create(
             common_name="Puerto Rican Tody",
             scientific_name="Todus mexicanus",
@@ -844,6 +844,11 @@ class LatestPostsFeedTests(TestCase):
             image="birdex/photos/tody.jpg",
             is_featured=True,
         )
+        second_photo = SightingPhoto.objects.create(
+            sighting=sighting,
+            image="birdex/photos/tody-flight.jpg",
+            caption="Tody in flight",
+        )
 
         response = self.client.get(reverse("blog:rss"), HTTP_HOST="example.com")
         feed = ElementTree.fromstring(response.content)
@@ -856,6 +861,7 @@ class LatestPostsFeedTests(TestCase):
         )
         description = item.findtext("description")
         self.assertIn(photo.image.url, description)
+        self.assertIn(second_photo.image.url, description)
         self.assertIn(
             f'<a href="https://example.com{sighting.get_absolute_url()}">',
             description,
@@ -863,8 +869,17 @@ class LatestPostsFeedTests(TestCase):
         self.assertNotIn(f'<a href="{photo.image.url}">', description)
         self.assertIn("Cabo Rojo", description)
         self.assertIn("Seen near the trail.", description)
-        self.assertIn("<strong>Photos:</strong> 1", description)
+        self.assertIn("<strong>Photos:</strong> 2", description)
         self.assertIn(PHOTO_LICENSE_URL, description)
+        self.assertIn("View the complete sighting in Birdex", description)
+
+        full_content = item.findtext(
+            "{http://purl.org/rss/1.0/modules/content/}encoded"
+        )
+        self.assertEqual(full_content, description)
+        media = item.find("{http://search.yahoo.com/mrss/}content")
+        self.assertEqual(media.attrib["url"], photo.image.url)
+        self.assertEqual(media.attrib["medium"], "image")
 
     @override_settings(STORAGES=TEST_STORAGES)
     def test_posts_only_rss_excludes_sightings(self):

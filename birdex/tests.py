@@ -131,6 +131,8 @@ class BirdDetailTests(TestCase):
         self.assertContains(response, self.bird.common_name)
         self.assertContains(response, self.bird.scientific_name)
         self.assertContains(response, self.bird.description)
+        self.assertContains(response, 'class="prose bird-detail-description"')
+        self.assertNotContains(response, "prose-invert bird-detail-description")
         self.assertContains(response, "Endemic")
         self.assertContains(response, "Learn more on eBird")
         self.assertContains(response, f'href="{self.bird.ebird_url}"')
@@ -202,6 +204,14 @@ class SightingTests(TestCase):
         self.assertContains(response, "Cabo Rojo")
         self.assertContains(response, "High")
         self.assertContains(response, "Community confirmed")
+        self.assertContains(
+            response,
+            "I documented a Puerto Rican Tody on August 12, 2026 in Cabo Rojo.",
+        )
+        self.assertContains(response, "Field notes")
+        self.assertContains(response, "Photographs")
+        self.assertContains(response, "About the species")
+        self.assertContains(response, "All Puerto Rican Tody sightings")
         self.assertContains(response, photo.image.url)
         self.assertContains(response, f'href="{photo.image.url}"')
         self.assertContains(response, 'class="photo-enlarge-link"')
@@ -215,6 +225,26 @@ class SightingTests(TestCase):
             f'href="{self.bird.get_absolute_url()}"',
         )
         self.assertContains(response, "August 12, 2026 sighting")
+
+    def test_detail_remains_useful_without_notes_or_species_description(self):
+        sighting = Sighting.objects.create(
+            bird=self.bird,
+            date="2026-08-12",
+            location="Cabo Rojo",
+        )
+
+        response = self.client.get(sighting.get_absolute_url())
+
+        self.assertContains(
+            response,
+            "I documented a Puerto Rican Tody on August 12, 2026 in Cabo Rojo.",
+        )
+        self.assertContains(
+            response,
+            "See every encounter and photograph I’ve recorded for this species.",
+        )
+        self.assertContains(response, "All Puerto Rican Tody sightings")
+        self.assertNotContains(response, "Field notes")
 
     def test_scheduled_sighting_is_not_public_yet(self):
         sighting = Sighting.objects.create(

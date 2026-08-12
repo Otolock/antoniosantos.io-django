@@ -23,8 +23,37 @@
         </a>
     </header>
 
+    <p class="p-summary sighting-summary">
+        I documented a {{ sighting.bird.common_name }} on {{ sighting.date|date:"F j, Y" }}{% if sighting.location %} in {{ sighting.location }}{% endif %}.
+    </p>
+
+    <dl class="sighting-facts">
+        <div>
+            <dt>Observed</dt>
+            <dd><time datetime="{{ sighting.date|date:'Y-m-d' }}">{{ sighting.date|date:"F j, Y" }}</time></dd>
+        </div>
+        {% if sighting.location %}
+            <div><dt>Location</dt><dd>{{ sighting.location }}</dd></div>
+        {% endif %}
+        <div><dt>Identification</dt><dd>{{ sighting.get_confidence_display }}</dd></div>
+        <div><dt>Verification</dt><dd>{{ sighting.get_verification_display }}</dd></div>
+        <div><dt>Photos</dt><dd>{{ sighting.photo_count }}</dd></div>
+    </dl>
+
+    {% if sighting.notes %}
+        <section class="sighting-notes-section">
+            <h2>Field notes</h2>
+            <div class="e-content prose sighting-notes">{{ sighting.notes|linebreaks }}</div>
+        </section>
+    {% endif %}
+
     {% if sighting.display_photos %}
-        <div class="sighting-gallery">
+        <section class="sighting-gallery-section">
+            <div class="sighting-section-heading">
+                <h2>Photographs</h2>
+                <p>{{ sighting.photo_count }} photo{{ sighting.photo_count|pluralize }}</p>
+            </div>
+            <div class="sighting-gallery">
             {% for photo in sighting.display_photos %}
                 <figure class="sighting-photo{% if photo.is_featured %} sighting-photo-featured{% endif %}">
                     <a
@@ -46,24 +75,24 @@
                     </figcaption>
                 </figure>
             {% endfor %}
-        </div>
+            </div>
+        </section>
     {% endif %}
 
-    <dl class="sighting-facts">
-        <div>
-            <dt>Observed</dt>
-            <dd><time datetime="{{ sighting.date|date:'Y-m-d' }}">{{ sighting.date|date:"F j, Y" }}</time></dd>
-        </div>
-        {% if sighting.location %}
-            <div><dt>Location</dt><dd>{{ sighting.location }}</dd></div>
+    <aside class="sighting-species-context">
+        <p class="sighting-kicker">About the species</p>
+        <h2>{{ sighting.bird.common_name }}</h2>
+        {% if sighting.bird.description %}
+            <div class="prose sighting-species-description">{{ sighting.bird.description|linebreaks }}</div>
+        {% else %}
+            <p>See every encounter and photograph I’ve recorded for this species.</p>
         {% endif %}
-        <div><dt>Identification</dt><dd>{{ sighting.get_confidence_display }}</dd></div>
-        <div><dt>Verification</dt><dd>{{ sighting.get_verification_display }}</dd></div>
-        <div><dt>Photos</dt><dd>{{ sighting.photo_count }}</dd></div>
-    </dl>
-
-    {% if sighting.notes %}
-        <div class="e-content prose prose-invert sighting-notes">{{ sighting.notes|linebreaks }}</div>
-    {% endif %}
+        <div class="sighting-species-links">
+            <a class="text-link" href="{{ sighting.bird.get_absolute_url }}">All {{ sighting.bird.common_name }} sightings →</a>
+            {% if sighting.bird.ebird_url %}
+                <a class="text-link" href="{{ sighting.bird.ebird_url }}" rel="external noopener" target="_blank">Species information on eBird ↗</a>
+            {% endif %}
+        </div>
+    </aside>
 </article>
 {% endblock %}

@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib.syndication.views import Feed
 from django.template.loader import render_to_string
+from django.utils.feedgenerator import Rss201rev2Feed
 from django.utils import timezone
 
 from birdex.models import Sighting
@@ -35,7 +36,33 @@ def site_url(path):
     return f"{settings.SITE_URL}{path}"
 
 
+class FullContentRssFeed(Rss201rev2Feed):
+    """RSS 2.0 with widely supported full-content and media extensions."""
+
+    def rss_attributes(self):
+        attributes = super().rss_attributes()
+        attributes.update(
+            {
+                "xmlns:content": "http://purl.org/rss/1.0/modules/content/",
+                "xmlns:media": "http://search.yahoo.com/mrss/",
+            }
+        )
+        return attributes
+
+    def add_item_elements(self, handler, item):
+        super().add_item_elements(handler, item)
+        if item.get("content") is not None:
+            handler.addQuickElement("content:encoded", item["content"])
+        if item.get("media_url"):
+            handler.addQuickElement(
+                "media:content",
+                "",
+                {"url": item["media_url"], "medium": "image"},
+            )
+
+
 class LatestPostsFeed(Feed):
+    feed_type = FullContentRssFeed
     title = "Antonio Santos"
     description = "Latest posts, notes, and bird sightings"
 
@@ -76,6 +103,16 @@ class LatestPostsFeed(Feed):
                 },
             ).strip()
         return item.body_html
+
+    def item_extra_kwargs(self, item):
+        return {
+            "content": self.item_description(item),
+            "media_url": (
+                item.primary_photo.image.url
+                if isinstance(item, Sighting) and item.primary_photo
+                else None
+            ),
+        }
 
     def item_link(self, item):
         return site_url(item.get_absolute_url())

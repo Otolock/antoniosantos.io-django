@@ -419,13 +419,19 @@
 
 @layer utilities {
   .note-prose,
-  .post-prose {
+  .post-prose,
+  .bird-detail-description,
+  .sighting-notes,
+  .sighting-species-description {
     max-width: none;
   }
 
   .note-prose,
   .post-prose,
-  .post-webmentions {
+  .post-webmentions,
+  .bird-detail-description,
+  .sighting-notes,
+  .sighting-species-description {
     --tw-prose-body: var(--color-text);
     --tw-prose-headings: var(--color-text-strong);
     --tw-prose-lead: var(--color-text);
@@ -447,7 +453,10 @@
 
   .note-prose :where(a):hover,
   .post-prose :where(a):hover,
-  .post-webmentions :where(a):hover {
+  .post-webmentions :where(a):hover,
+  .bird-detail-description :where(a):hover,
+  .sighting-notes :where(a):hover,
+  .sighting-species-description :where(a):hover {
     color: var(--color-accent-hover);
   }
 

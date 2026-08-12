@@ -1,9 +1,17 @@
-{% if sighting.primary_photo %}
-<p><a href="{{ sighting_url }}"><img src="{{ sighting.primary_photo.image.url }}" alt="{{ sighting.primary_photo.caption|default:sighting.bird.common_name }}"></a></p>
-<p>{% include "birdex/includes/photo_license.html" %}</p>
-{% endif %}
-<p><i>{{ sighting.bird.scientific_name }}</i></p>
-<p><strong>Observed:</strong> {{ sighting.date|date:"F j, Y" }}{% if sighting.location %} in {{ sighting.location }}{% endif %}</p>
+<p>
+I documented a {{ sighting.bird.common_name }} (<i>{{ sighting.bird.scientific_name }}</i>)
+on {{ sighting.date|date:"F j, Y" }}{% if sighting.location %} in {{ sighting.location }}{% endif %}.
+</p>
+{% if sighting.notes %}{{ sighting.notes|linebreaks }}{% elif sighting.bird.description %}{{ sighting.bird.description|linebreaks }}{% endif %}
 <p><strong>Identification:</strong> {{ sighting.get_confidence_display }} · {{ sighting.get_verification_display }}</p>
 <p><strong>Photos:</strong> {{ sighting.photo_count }}</p>
-{% if sighting.notes %}{{ sighting.notes|linebreaks }}{% endif %}
+{% for photo in sighting.display_photos %}
+<figure>
+<a href="{{ sighting_url }}"><img src="{{ photo.image.url }}" alt="{{ photo.caption|default:sighting.bird.common_name }}"></a>
+{% if photo.caption %}<figcaption>{{ photo.caption }}</figcaption>{% endif %}
+</figure>
+{% endfor %}
+{% if sighting.display_photos %}
+<p>Photos © Antonio Santos · <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" rel="license">CC BY-NC-ND 4.0</a></p>
+{% endif %}
+<p><a href="{{ sighting_url }}">View the complete sighting in Birdex →</a></p>
