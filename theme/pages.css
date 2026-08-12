@@ -419,6 +419,11 @@
     line-height: var(--leading-body-large);
   }
 
+  /* Reader apps that extract the article without site CSS will retain this note. */
+  .reader-extraction-note {
+    display: none;
+  }
+
   .sighting-header .u-url {
     align-self: flex-start;
     font-family: var(--font-mono);

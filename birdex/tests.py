@@ -212,6 +212,12 @@ class SightingTests(TestCase):
         self.assertContains(response, "Photographs")
         self.assertContains(response, "About the species")
         self.assertContains(response, "All Puerto Rican Tody sightings")
+        self.assertContains(response, 'class="reader-extraction-note"')
+        self.assertContains(
+            response,
+            "I tried adapting Birdex’s photo layout for RSS, but feed readers "
+            "render it inconsistently.",
+        )
         self.assertContains(response, photo.image.url)
         self.assertContains(response, f'href="{photo.image.url}"')
         self.assertContains(response, 'class="photo-enlarge-link"')

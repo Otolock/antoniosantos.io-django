@@ -23,6 +23,10 @@
         </a>
     </header>
 
+    <p class="reader-extraction-note">
+        I tried adapting Birdex’s photo layout for RSS, but feed readers render it inconsistently. If this entry looks strange here, <a href="{{ sighting.get_absolute_url }}">view it in Birdex</a> instead.
+    </p>
+
     <p class="p-summary sighting-summary">
         I documented a {{ sighting.bird.common_name }} on {{ sighting.date|date:"F j, Y" }}{% if sighting.location %} in {{ sighting.location }}{% endif %}.
     </p>
