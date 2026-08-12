@@ -1,4 +1,5 @@
 {% with featured=sighting.primary_photo %}
+<p><small><em>I tried adapting Birdex’s photo layout for RSS, but feed readers render it inconsistently. If this entry looks strange here, <a href="{{ sighting_url }}">view it in Birdex</a> instead.</em></small></p>
 {% if featured %}
 <p>
 <a href="{{ sighting_url }}"><img src="{{ featured.image.url }}" alt="{{ featured.caption|default:sighting.bird.common_name }}" style="display:block;width:100%;max-width:72rem;height:auto;"></a>

@@ -873,6 +873,16 @@ class LatestPostsFeedTests(TestCase):
         self.assertIn(PHOTO_LICENSE_URL, description)
         self.assertIn("View this sighting in Birdex", description)
         self.assertIn(
+            "I tried adapting Birdex’s photo layout for RSS, but feed readers "
+            "render it inconsistently.",
+            description,
+        )
+        self.assertIn(
+            f'<a href="https://example.com{sighting.get_absolute_url()}">'
+            "view it in Birdex</a>",
+            description,
+        )
+        self.assertIn(
             'style="display:block;width:100%;max-width:72rem;height:auto;"',
             description,
         )
