@@ -869,33 +869,9 @@ class LatestPostsFeedTests(TestCase):
         self.assertNotIn(f'<a href="{photo.image.url}">', description)
         self.assertIn("Cabo Rojo", description)
         self.assertIn("Seen near the trail.", description)
-        self.assertIn("<strong>Photographs:</strong> 2", description)
+        self.assertIn("<strong>Photos:</strong> 2", description)
         self.assertIn(PHOTO_LICENSE_URL, description)
-        self.assertIn("View this sighting in Birdex", description)
-        self.assertIn(
-            "I tried adapting Birdex’s photo layout for RSS, but feed readers "
-            "render it inconsistently.",
-            description,
-        )
-        self.assertIn(
-            f'<a href="https://example.com{sighting.get_absolute_url()}">'
-            "view it in Birdex</a>",
-            description,
-        )
-        self.assertIn(
-            'style="display:block;width:100%;max-width:72rem;height:auto;"',
-            description,
-        )
-        self.assertLess(
-            description.index(photo.image.url),
-            description.index(
-                "I documented a Puerto Rican Tody (<i>Todus mexicanus</i>)"
-            ),
-        )
-        self.assertEqual(
-            [category.text for category in item.findall("category")],
-            ["Birdex", "Puerto Rican Tody"],
-        )
+        self.assertIn("View the complete sighting in Birdex", description)
 
         full_content = item.findtext(
             "{http://purl.org/rss/1.0/modules/content/}encoded"

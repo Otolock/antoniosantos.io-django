@@ -117,11 +117,6 @@ class LatestPostsFeed(Feed):
     def item_link(self, item):
         return site_url(item.get_absolute_url())
 
-    def item_categories(self, item):
-        if isinstance(item, Sighting):
-            return ("Birdex", item.bird.common_name)
-        return ()
-
     def item_guid(self, item):
         if isinstance(item, Post) and item.slug in LEGACY_RSS_GUID_SLUGS:
             return site_url(f"/posts/{item.slug}/")

@@ -1,31 +1,17 @@
-{% with featured=sighting.primary_photo %}
-<p><small><em>I tried adapting Birdex’s photo layout for RSS, but feed readers render it inconsistently. If this entry looks strange here, <a href="{{ sighting_url }}">view it in Birdex</a> instead.</em></small></p>
-{% if featured %}
 <p>
-<a href="{{ sighting_url }}"><img src="{{ featured.image.url }}" alt="{{ featured.caption|default:sighting.bird.common_name }}" style="display:block;width:100%;max-width:72rem;height:auto;"></a>
-</p>
-{% if featured.caption %}<p><small>{{ featured.caption }}</small></p>{% endif %}
-{% endif %}
-<p><i>{{ sighting.bird.scientific_name }}</i></p>
-<p>
-I documented a {{ sighting.bird.common_name }} (<i>{{ sighting.bird.scientific_name }}</i>) on {{ sighting.date|date:"F j, Y" }}{% if sighting.location %} in {{ sighting.location }}{% endif %}.
+I documented a {{ sighting.bird.common_name }} (<i>{{ sighting.bird.scientific_name }}</i>)
+on {{ sighting.date|date:"F j, Y" }}{% if sighting.location %} in {{ sighting.location }}{% endif %}.
 </p>
 {% if sighting.notes %}{{ sighting.notes|linebreaks }}{% elif sighting.bird.description %}{{ sighting.bird.description|linebreaks }}{% endif %}
-<p>
-<strong>Observed:</strong> {{ sighting.date|date:"F j, Y" }}{% if sighting.location %} · {{ sighting.location }}{% endif %}<br>
-<strong>Identification:</strong> {{ sighting.get_confidence_display }} · {{ sighting.get_verification_display }}<br>
-<strong>Photographs:</strong> {{ sighting.photo_count }}
-</p>
+<p><strong>Identification:</strong> {{ sighting.get_confidence_display }} · {{ sighting.get_verification_display }}</p>
+<p><strong>Photos:</strong> {{ sighting.photo_count }}</p>
 {% for photo in sighting.display_photos %}
-{% if photo.pk != featured.pk %}
-<p>
-<a href="{{ sighting_url }}"><img src="{{ photo.image.url }}" alt="{{ photo.caption|default:sighting.bird.common_name }}" style="display:block;width:100%;max-width:72rem;height:auto;"></a>
-</p>
-{% if photo.caption %}<p><small>{{ photo.caption }}</small></p>{% endif %}
-{% endif %}
+<figure>
+<a href="{{ sighting_url }}"><img src="{{ photo.image.url }}" alt="{{ photo.caption|default:sighting.bird.common_name }}"></a>
+{% if photo.caption %}<figcaption>{{ photo.caption }}</figcaption>{% endif %}
+</figure>
 {% endfor %}
 {% if sighting.display_photos %}
-<p><small>Photos © Antonio Santos · <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" rel="license">CC BY-NC-ND 4.0</a></small></p>
+<p>Photos © Antonio Santos · <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" rel="license">CC BY-NC-ND 4.0</a></p>
 {% endif %}
-<p><strong><a href="{{ sighting_url }}">View this sighting in Birdex →</a></strong></p>
-{% endwith %}
+<p><a href="{{ sighting_url }}">View the complete sighting in Birdex →</a></p>
