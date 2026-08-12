@@ -1,0 +1,98 @@
+{% extends "blog/base.html" %}
+
+{% block title %}{{ bird.common_name }} — Birdex{% endblock %}
+
+{% block content %}
+<article class="bird-detail-page">
+    <nav class="birdex-breadcrumbs" aria-label="Breadcrumb">
+        <ol>
+            <li><a href="{% url 'birdex:home' %}">Birdex</a></li>
+            <li aria-current="page">{{ bird.common_name }}</li>
+        </ol>
+    </nav>
+
+    <header class="bird-detail-header">
+        <div class="bird-detail-heading">
+            <p class="birdex-kicker">Species</p>
+            <h1 class="bird-detail-title">{{ bird.common_name }}</h1>
+            <p class="bird-detail-scientific"><i>{{ bird.scientific_name }}</i></p>
+            {% if bird.endemic %}<p class="bird-detail-badge">Endemic</p>{% endif %}
+        </div>
+
+        {% if bird.featured_photo %}
+            <figure class="bird-detail-hero">
+                <a
+                    class="card-photo-link"
+                    href="{{ bird.featured_photo.sighting.get_absolute_url }}"
+                    aria-label="View this {{ bird.common_name }} sighting"
+                >
+                    <img
+                        src="{{ bird.featured_photo.image.url }}"
+                        alt="{{ bird.featured_photo.caption|default:bird.common_name }}"
+                    >
+                </a>
+                <figcaption>
+                    {% if bird.featured_photo.caption %}<span>{{ bird.featured_photo.caption }}</span>{% endif %}
+                    {% include "birdex/includes/photo_license.html" %}
+                </figcaption>
+            </figure>
+        {% endif %}
+    </header>
+
+    {% if bird.description %}
+        <div class="prose prose-invert bird-detail-description">{{ bird.description|linebreaks }}</div>
+    {% endif %}
+
+    {% if bird.ebird_url %}
+        <aside class="bird-detail-reference">
+            <p>Identification, range, taxonomy, recordings, and community observations:</p>
+            <a href="{{ bird.ebird_url }}" rel="external noopener" target="_blank">
+                Learn more on eBird ↗
+            </a>
+        </aside>
+    {% endif %}
+
+    <section class="bird-sightings">
+        <div class="bird-sightings-heading">
+            <h2>Sightings</h2>
+            <p>{{ sightings|length }} encounter{{ sightings|length|pluralize }}</p>
+        </div>
+
+        {% if sightings %}
+            <div class="bird-sighting-list">
+                {% for sighting in sightings %}
+                    <article class="bird-sighting-card">
+                        {% if sighting.primary_photo %}
+                            <figure class="bird-sighting-photo">
+                                <a
+                                    class="card-photo-link"
+                                    href="{{ sighting.get_absolute_url }}"
+                                    aria-label="View the {{ sighting.date|date:'F j, Y' }} sighting"
+                                >
+                                <img
+                                    src="{{ sighting.primary_photo.image.url }}"
+                                    alt="{{ sighting.primary_photo.caption|default:bird.common_name }}"
+                                    loading="lazy"
+                                    decoding="async"
+                                >
+                                </a>
+                                <figcaption>{% include "birdex/includes/photo_license.html" %}</figcaption>
+                            </figure>
+                        {% endif %}
+                        <a class="bird-sighting-detail-link" href="{{ sighting.get_absolute_url }}">
+                            <span class="bird-sighting-body">
+                                <strong>{{ sighting.date|date:"F j, Y" }}</strong>
+                                {% if sighting.location %}<span>{{ sighting.location }}</span>{% endif %}
+                                <span>{{ sighting.get_confidence_display }} · {{ sighting.get_verification_display }}</span>
+                                <span>{{ sighting.photo_count }} photo{{ sighting.photo_count|pluralize }}</span>
+                            </span>
+                        </a>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="birdex-empty">No published sightings yet.</p>
+        {% endif %}
+    </section>
+</article>
+{% endblock %}

@@ -4,6 +4,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
+from birdex.models import Sighting
+
 from .blogroll import LINK_COUNT, LINK_GROUPS
 from .models import Note, Post, PostMedia, Tag
 from webmentions.models import Webmention
@@ -34,10 +36,15 @@ def published_entries():
 def home(request):
     posts = published_posts()[:5]
     notes = published_notes()[:3]
+    sightings = (
+        Sighting.objects.published()
+        .with_primary_photo()
+        .order_by("-published_at")[:3]
+    )
     return render(
         request,
         "blog/home.html",
-        {"posts": posts, "notes": notes},
+        {"posts": posts, "notes": notes, "sightings": sightings},
     )
 
 

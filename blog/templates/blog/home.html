@@ -60,8 +60,52 @@
 </section>
 {% endif %}
 
+{% if sightings %}
+<section class="h-feed home-section">
+    <h2 class="p-name section-heading">Recent bird sightings</h2>
+
+    <div class="home-sighting-list">
+        {% for sighting in sightings %}
+            <article class="h-entry home-sighting">
+                {% if sighting.primary_photo %}
+                    <figure class="home-sighting-media">
+                        <a
+                            class="card-photo-link"
+                            href="{{ sighting.get_absolute_url }}"
+                            aria-label="View this {{ sighting.bird.common_name }} sighting"
+                        >
+                        <img
+                            class="u-photo home-sighting-photo"
+                            src="{{ sighting.primary_photo.image.url }}"
+                            alt="{{ sighting.primary_photo.caption|default:sighting.bird.common_name }}"
+                            loading="lazy"
+                            decoding="async"
+                        >
+                        </a>
+                        <figcaption>{% include "birdex/includes/photo_license.html" %}</figcaption>
+                    </figure>
+                {% endif %}
+                <a class="u-url home-sighting-link" href="{{ sighting.get_absolute_url }}">
+                    <span class="home-sighting-body">
+                        <strong class="p-name">{{ sighting.bird.common_name }}</strong>
+                        <span class="p-summary home-sighting-meta">
+                            Observed {{ sighting.date|date:"M j, Y" }}{% if sighting.location %} · {{ sighting.location }}{% endif %}
+                        </span>
+                        <span class="home-sighting-meta">{{ sighting.photo_count }} photo{{ sighting.photo_count|pluralize }}</span>
+                        <time class="dt-published sr-only" datetime="{{ sighting.published_at|date:'c' }}">
+                            Published {{ sighting.published_at|date:"F j, Y" }}
+                        </time>
+                    </span>
+                </a>
+            </article>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
 <nav class="home-index-links" aria-label="Content indexes">
     <a class="text-link" href="{% url 'blog:archive' %}">Post archive →</a>
     <a class="text-link" href="{% url 'blog:notes' %}">All notes →</a>
+    <a class="text-link" href="{% url 'birdex:home' %}">Birdex →</a>
 </nav>
 {% endblock %}

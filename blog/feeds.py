@@ -1,6 +1,9 @@
 from django.conf import settings
 from django.contrib.syndication.views import Feed
+from django.template.loader import render_to_string
 from django.utils import timezone
+
+from birdex.models import Sighting
 
 from .models import Note, Post
 
@@ -34,7 +37,7 @@ def site_url(path):
 
 class LatestPostsFeed(Feed):
     title = "Antonio Santos"
-    description = "Latest posts and notes"
+    description = "Latest posts, notes, and bird sightings"
 
     def link(self):
         return site_url("/")
@@ -49,12 +52,29 @@ class LatestPostsFeed(Feed):
         notes = Note.objects.filter(
             status=Note.PUBLISHED, published_at__lte=timezone.now()
         )
-        return sorted([*posts, *notes], key=lambda item: item.published_at, reverse=True)[:20]
+        sightings = Sighting.objects.published().with_primary_photo()
+        return sorted(
+            [*posts, *notes, *sightings],
+            key=lambda item: item.published_at,
+            reverse=True,
+        )[:20]
 
     def item_title(self, item):
-        return item.display_title if isinstance(item, Note) else item.title
+        if isinstance(item, Note):
+            return item.display_title
+        if isinstance(item, Sighting):
+            return f"{item.bird.common_name} sighting"
+        return item.title
 
     def item_description(self, item):
+        if isinstance(item, Sighting):
+            return render_to_string(
+                "birdex/includes/sighting_feed.html",
+                {
+                    "sighting": item,
+                    "sighting_url": self.item_link(item),
+                },
+            ).strip()
         return item.body_html
 
     def item_link(self, item):

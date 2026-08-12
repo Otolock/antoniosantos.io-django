@@ -19,9 +19,13 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import include, path
 
+from .ai_policy import robots_txt
+
 urlpatterns = [
+    path("robots.txt", robots_txt, name="robots_txt"),
     path("admin/", admin.site.urls),
     path("webmention/", include("webmentions.urls")),
+    path("birdex/", include("birdex.urls")),
     path("", include("indieauth.urls")),
     path("", include("blog.urls")),
 ]

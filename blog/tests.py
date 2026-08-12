@@ -10,10 +10,15 @@ import tempfile
 from unittest.mock import patch
 from xml.etree import ElementTree
 
+from birdex.models import Bird, Sighting, SightingPhoto
+
 from . import llm
 from .feeds import LEGACY_RSS_GUID_SLUGS
 from .models import Note, Post, PostMedia, Tag
 from webmentions.models import Webmention
+
+
+PHOTO_LICENSE_URL = "https://creativecommons.org/licenses/by-nc-nd/4.0/"
 
 
 TEST_STORAGES = {
@@ -22,6 +27,9 @@ TEST_STORAGES = {
     },
     "staticfiles": {
         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+    "birdex": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
 }
 
@@ -228,6 +236,50 @@ class PostViewTests(TestCase):
         self.assertContains(response, "A quick note.")
         self.assertNotContains(response, "note-list-item")
         self.assertContains(response, note.get_absolute_url())
+
+    def test_home_renders_recent_bird_sightings_with_a_photo(self):
+        bird = Bird.objects.create(
+            common_name="Puerto Rican Tody",
+            scientific_name="Todus mexicanus",
+            slug="puerto-rican-tody",
+        )
+        sighting = Sighting.objects.create(
+            bird=bird,
+            date="2026-08-12",
+            location="Cabo Rojo",
+        )
+        photo = SightingPhoto.objects.create(
+            sighting=sighting,
+            image="birdex/photos/tody.jpg",
+            is_featured=True,
+        )
+
+        response = self.client.get(reverse("blog:home"))
+
+        self.assertContains(response, "Recent bird sightings")
+        self.assertContains(response, bird.common_name)
+        self.assertContains(response, "Cabo Rojo")
+        self.assertContains(response, sighting.get_absolute_url())
+        self.assertContains(response, photo.image.url)
+        self.assertNotContains(response, f'href="{photo.image.url}"')
+        self.assertContains(response, "1 photo")
+        self.assertContains(response, PHOTO_LICENSE_URL)
+
+    def test_home_excludes_scheduled_bird_sightings(self):
+        bird = Bird.objects.create(
+            common_name="Bananaquit",
+            scientific_name="Coereba flaveola",
+            slug="bananaquit",
+        )
+        Sighting.objects.create(
+            bird=bird,
+            date="2026-08-12",
+            published_at=timezone.now() + timezone.timedelta(days=1),
+        )
+
+        response = self.client.get(reverse("blog:home"))
+
+        self.assertNotContains(response, bird.common_name)
 
     def test_archive_lists_all_published_posts_with_current_publish_dates(self):
         self.make_post()
@@ -625,6 +677,51 @@ class SubscribeViewTests(TestCase):
         self.assertEqual(response.status_code, 405)
 
 
+@override_settings(
+    ALLOWED_HOSTS=["example.com"],
+    SITE_URL="https://example.com",
+    STORAGES=TEST_STORAGES,
+)
+class ContentRightsTests(TestCase):
+    def test_robots_txt_disallows_known_ai_training_crawlers(self):
+        response = self.client.get(reverse("robots_txt"), HTTP_HOST="example.com")
+        content = response.content.decode()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "text/plain; charset=utf-8")
+        self.assertIn(
+            "Content-Signal: search=yes, ai-train=no, use=reference",
+            content,
+        )
+        for crawler in (
+            "Amazonbot",
+            "Applebot-Extended",
+            "Bytespider",
+            "CCBot",
+            "ClaudeBot",
+            "Google-Extended",
+            "GPTBot",
+            "meta-externalagent",
+        ):
+            with self.subTest(crawler=crawler):
+                self.assertIn(f"User-agent: {crawler}\nDisallow: /", content)
+        self.assertIn("Sitemap: https://example.com/sitemap.xml", content)
+
+    def test_pages_send_machine_readable_rights_reservations(self):
+        response = self.client.get(reverse("blog:home"), HTTP_HOST="example.com")
+
+        self.assertEqual(
+            response["Content-Signal"],
+            "search=yes, ai-train=no, use=reference",
+        )
+        self.assertEqual(response["TDM-Reservation"], "1")
+        self.assertContains(
+            response,
+            '<meta name="tdm-reservation" content="1">',
+            html=True,
+        )
+
+
 class LatestPostsFeedTests(TestCase):
     ATTACHED_FEED_GUID_SLUGS = [
         "i-don-t-need-it-and-neither-do-you",
@@ -724,6 +821,65 @@ class LatestPostsFeedTests(TestCase):
 
         self.assertContains(response, "A quick note.")
         self.assertContains(response, f"https://example.com{note.get_absolute_url()}")
+
+    @override_settings(
+        ALLOWED_HOSTS=["example.com"],
+        SITE_URL="https://example.com",
+        STORAGES=TEST_STORAGES,
+    )
+    def test_combined_rss_includes_sightings_and_their_primary_photo(self):
+        bird = Bird.objects.create(
+            common_name="Puerto Rican Tody",
+            scientific_name="Todus mexicanus",
+            slug="puerto-rican-tody",
+        )
+        sighting = Sighting.objects.create(
+            bird=bird,
+            date="2026-08-12",
+            location="Cabo Rojo",
+            notes="Seen near the trail.",
+        )
+        photo = SightingPhoto.objects.create(
+            sighting=sighting,
+            image="birdex/photos/tody.jpg",
+            is_featured=True,
+        )
+
+        response = self.client.get(reverse("blog:rss"), HTTP_HOST="example.com")
+        feed = ElementTree.fromstring(response.content)
+        item = feed.find("./channel/item")
+
+        self.assertEqual(item.findtext("title"), "Puerto Rican Tody sighting")
+        self.assertEqual(
+            item.findtext("link"),
+            f"https://example.com{sighting.get_absolute_url()}",
+        )
+        description = item.findtext("description")
+        self.assertIn(photo.image.url, description)
+        self.assertIn(
+            f'<a href="https://example.com{sighting.get_absolute_url()}">',
+            description,
+        )
+        self.assertNotIn(f'<a href="{photo.image.url}">', description)
+        self.assertIn("Cabo Rojo", description)
+        self.assertIn("Seen near the trail.", description)
+        self.assertIn("<strong>Photos:</strong> 1", description)
+        self.assertIn(PHOTO_LICENSE_URL, description)
+
+    @override_settings(STORAGES=TEST_STORAGES)
+    def test_posts_only_rss_excludes_sightings(self):
+        self.make_post()
+        bird = Bird.objects.create(
+            common_name="Puerto Rican Tody",
+            scientific_name="Todus mexicanus",
+            slug="puerto-rican-tody",
+        )
+        Sighting.objects.create(bird=bird, date="2026-08-12")
+
+        response = self.client.get(reverse("blog:posts_rss"))
+
+        self.assertContains(response, "Live post")
+        self.assertNotContains(response, "Puerto Rican Tody sighting")
 
     @override_settings(ALLOWED_HOSTS=["example.com"], SITE_URL="https://example.com")
     def test_posts_only_rss_excludes_notes(self):
