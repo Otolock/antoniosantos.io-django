@@ -80,8 +80,10 @@ CSRF_TRUSTED_ORIGINS = [
 
 INSTALLED_APPS = [
     'blog',
+    'birdex',
     'indieauth',
     'webmentions',
+    'storages',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -93,6 +95,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'config.middleware.ContentRightsReservationMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -173,8 +176,26 @@ STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
+
     "staticfiles": {
         "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",
+    },
+
+    "birdex": {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "access_key": os.environ["R2_ACCESS_KEY_ID"],
+            "secret_key": os.environ["R2_SECRET_ACCESS_KEY"],
+            "bucket_name": os.environ["R2_BUCKET_NAME"],
+            "endpoint_url": (
+                f"https://{os.environ['R2_ACCOUNT_ID']}"
+                ".r2.cloudflarestorage.com"
+            ),
+            "region_name": "auto",
+            "default_acl": None,
+            "file_overwrite": True,
+            "custom_domain": "media.antoniosantos.io",
+        },
     },
 }
 

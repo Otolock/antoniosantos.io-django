@@ -1,0 +1,9 @@
+{% if sighting.primary_photo %}
+<p><a href="{{ sighting_url }}"><img src="{{ sighting.primary_photo.image.url }}" alt="{{ sighting.primary_photo.caption|default:sighting.bird.common_name }}"></a></p>
+<p>{% include "birdex/includes/photo_license.html" %}</p>
+{% endif %}
+<p><i>{{ sighting.bird.scientific_name }}</i></p>
+<p><strong>Observed:</strong> {{ sighting.date|date:"F j, Y" }}{% if sighting.location %} in {{ sighting.location }}{% endif %}</p>
+<p><strong>Identification:</strong> {{ sighting.get_confidence_display }} · {{ sighting.get_verification_display }}</p>
+<p><strong>Photos:</strong> {{ sighting.photo_count }}</p>
+{% if sighting.notes %}{{ sighting.notes|linebreaks }}{% endif %}

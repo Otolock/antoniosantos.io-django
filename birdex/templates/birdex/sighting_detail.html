@@ -1,0 +1,69 @@
+{% extends "blog/base.html" %}
+
+{% block title %}{{ sighting.bird.common_name }} sighting — Birdex{% endblock %}
+
+{% block content %}
+<article class="h-entry sighting-page">
+    <nav class="birdex-breadcrumbs" aria-label="Breadcrumb">
+        <ol>
+            <li><a href="{% url 'birdex:home' %}">Birdex</a></li>
+            <li><a href="{{ sighting.bird.get_absolute_url }}">{{ sighting.bird.common_name }}</a></li>
+            <li aria-current="page">{{ sighting.date|date:"F j, Y" }} sighting</li>
+        </ol>
+    </nav>
+
+    <header class="sighting-header">
+        <p class="sighting-kicker">Bird sighting</p>
+        <h1 class="p-name sighting-title">{{ sighting.bird.common_name }}</h1>
+        <p class="sighting-scientific"><i>{{ sighting.bird.scientific_name }}</i></p>
+        <a class="u-url" href="{{ sighting.get_absolute_url }}">
+            <time class="dt-published" datetime="{{ sighting.published_at|date:'c' }}">
+                Published {{ sighting.published_at|date:"F j, Y" }}
+            </time>
+        </a>
+    </header>
+
+    {% if sighting.display_photos %}
+        <div class="sighting-gallery">
+            {% for photo in sighting.display_photos %}
+                <figure class="sighting-photo{% if photo.is_featured %} sighting-photo-featured{% endif %}">
+                    <a
+                        class="photo-enlarge-link"
+                        href="{{ photo.image.url }}"
+                        target="_blank"
+                        rel="noopener"
+                        aria-label="Open full-size photo of {{ sighting.bird.common_name }}"
+                    >
+                        <img
+                            class="u-photo"
+                            src="{{ photo.image.url }}"
+                            alt="{{ photo.caption|default:sighting.bird.common_name }}"
+                        >
+                    </a>
+                    <figcaption>
+                        {% if photo.caption %}<span>{{ photo.caption }}</span>{% endif %}
+                        {% include "birdex/includes/photo_license.html" %}
+                    </figcaption>
+                </figure>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <dl class="sighting-facts">
+        <div>
+            <dt>Observed</dt>
+            <dd><time datetime="{{ sighting.date|date:'Y-m-d' }}">{{ sighting.date|date:"F j, Y" }}</time></dd>
+        </div>
+        {% if sighting.location %}
+            <div><dt>Location</dt><dd>{{ sighting.location }}</dd></div>
+        {% endif %}
+        <div><dt>Identification</dt><dd>{{ sighting.get_confidence_display }}</dd></div>
+        <div><dt>Verification</dt><dd>{{ sighting.get_verification_display }}</dd></div>
+        <div><dt>Photos</dt><dd>{{ sighting.photo_count }}</dd></div>
+    </dl>
+
+    {% if sighting.notes %}
+        <div class="e-content prose prose-invert sighting-notes">{{ sighting.notes|linebreaks }}</div>
+    {% endif %}
+</article>
+{% endblock %}

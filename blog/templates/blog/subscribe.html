@@ -11,8 +11,8 @@ Subscribe
 
     <div class="rss-feed-options">
         <a class="rss-feed-card" href="{% url 'blog:rss' %}">
-            <span class="rss-feed-card-title">Posts and notes</span>
-            <span class="rss-feed-card-description">Everything published here, from longer writing to short updates.</span>
+            <span class="rss-feed-card-title">Posts and notes + Birdex</span>
+            <span class="rss-feed-card-description">Everything published here, from longer writing and short updates to bird sightings.</span>
             <code class="rss-feed-card-url">{{ request.scheme }}://{{ request.get_host }}{% url 'blog:rss' %}</code>
         </a>
 

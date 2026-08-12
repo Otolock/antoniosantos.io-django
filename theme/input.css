@@ -8,4 +8,5 @@
 @plugin "@tailwindcss/typography";
 
 @source "../blog/templates";
+@source "../birdex/templates";
 @source "../indieauth/templates";

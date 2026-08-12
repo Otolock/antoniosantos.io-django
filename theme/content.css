@@ -106,6 +106,78 @@
     white-space: nowrap;
   }
 
+  .home-sighting-list {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: calc(var(--spacing) * 3);
+  }
+
+  .home-sighting {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+  }
+
+  .home-sighting-link {
+    display: grid;
+    flex: 1;
+    color: var(--color-text);
+    text-decoration: none;
+    transition: border-color var(--default-transition-duration)
+      var(--default-transition-timing-function),
+      background-color var(--default-transition-duration)
+      var(--default-transition-timing-function);
+  }
+
+  .home-sighting-media .card-photo-link {
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+  }
+
+  .home-sighting-link:hover {
+    background: var(--color-accent-soft);
+  }
+
+  .home-sighting-photo {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: 4 / 3;
+    background: var(--color-surface-raised);
+    object-fit: cover;
+  }
+
+  .home-sighting-media figcaption {
+    padding: calc(var(--spacing) * 2.5)
+      calc(var(--spacing) * 3.5);
+  }
+
+  .home-sighting-body {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: var(--spacing);
+    padding: calc(var(--spacing) * 3.5);
+  }
+
+  .home-sighting-body .p-name {
+    color: var(--color-text-strong);
+  }
+
+  .home-sighting-meta {
+    color: var(--color-text-muted);
+    font-size: var(--text-small);
+  }
+
+  @media (min-width: 38rem) {
+    .home-sighting-list {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
   .home-index-links {
     display: flex;
     flex-wrap: wrap;

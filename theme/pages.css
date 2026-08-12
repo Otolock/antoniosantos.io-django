@@ -1,4 +1,504 @@
 @layer components {
+  .birdex-page {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 7);
+  }
+
+  .birdex-header {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 2);
+    border-top: 1px solid var(--color-border);
+    padding-top: calc(var(--spacing) * 4);
+  }
+
+  .birdex-kicker,
+  .birdex-count {
+    color: var(--color-accent);
+    font-family: var(--font-mono);
+    font-size: var(--text-small);
+  }
+
+  .birdex-kicker {
+    font-weight: var(--font-weight-bold);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .birdex-heading-row {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 3);
+  }
+
+  .birdex-title {
+    color: var(--color-text-strong);
+    font-size: clamp(2.5rem, 11vw, 4rem);
+    font-weight: 800;
+    letter-spacing: -0.045em;
+    line-height: 1;
+  }
+
+  .birdex-intro {
+    max-width: 30rem;
+    margin-top: calc(var(--spacing) * 2.5);
+    color: var(--color-text-muted);
+  }
+
+  .birdex-count {
+    white-space: nowrap;
+  }
+
+  .bird-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: calc(var(--spacing) * 4);
+  }
+
+  .bird-card {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+    transition: transform var(--default-transition-duration)
+      var(--default-transition-timing-function),
+      border-color var(--default-transition-duration)
+      var(--default-transition-timing-function);
+  }
+
+  .bird-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--color-accent);
+  }
+
+  .bird-card-link {
+    display: block;
+    flex: 1;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .bird-card-photo {
+    overflow: hidden;
+    background: var(--color-surface-raised);
+  }
+
+  .bird-card-photo .card-photo-link {
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+  }
+
+  .bird-card-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .bird-card-photo figcaption,
+  .bird-sighting-photo figcaption {
+    padding: calc(var(--spacing) * 2.5)
+      calc(var(--spacing) * 3.5);
+  }
+
+  .photo-enlarge-link {
+    display: block;
+    cursor: zoom-in;
+  }
+
+  .card-photo-link {
+    display: block;
+  }
+
+  .photo-license {
+    display: block;
+    color: var(--color-text-subtle);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    line-height: var(--leading-compact);
+  }
+
+  .photo-license a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 0.14em;
+  }
+
+  .photo-license a:hover {
+    color: var(--color-accent-hover);
+  }
+
+  .bird-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 0.5);
+    padding: calc(var(--spacing) * 4);
+  }
+
+  .bird-card-name {
+    color: var(--color-text-strong);
+    font-size: var(--text-section);
+    font-weight: var(--font-weight-bold);
+    line-height: var(--leading-section);
+  }
+
+  .bird-card-scientific {
+    color: var(--color-text-muted);
+    font-size: var(--text-small);
+  }
+
+  .birdex-empty {
+    border-block: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    padding-block: calc(var(--spacing) * 5);
+  }
+
+  .birdex-breadcrumbs {
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-small);
+  }
+
+  .birdex-breadcrumbs ol {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(var(--spacing) * 1.5);
+  }
+
+  .birdex-breadcrumbs li {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing) * 1.5);
+  }
+
+  .birdex-breadcrumbs li + li::before {
+    color: var(--color-text-subtle);
+    content: "→";
+  }
+
+  .birdex-breadcrumbs a {
+    color: var(--color-accent);
+  }
+
+  .birdex-breadcrumbs a:hover {
+    color: var(--color-accent-hover);
+  }
+
+  .bird-detail-page {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 7);
+  }
+
+  .bird-detail-header {
+    display: grid;
+    gap: calc(var(--spacing) * 5);
+    border-top: 1px solid var(--color-border);
+    padding-top: calc(var(--spacing) * 4);
+  }
+
+  .bird-detail-heading {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing);
+  }
+
+  .bird-detail-title {
+    color: var(--color-text-strong);
+    font-size: clamp(2.5rem, 10vw, 4rem);
+    font-weight: 800;
+    letter-spacing: -0.045em;
+    line-height: 1;
+  }
+
+  .bird-detail-scientific {
+    color: var(--color-text-muted);
+    font-size: var(--text-section);
+  }
+
+  .bird-detail-badge {
+    margin-top: calc(var(--spacing) * 2);
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-pill);
+    color: var(--color-accent);
+    font-family: var(--font-mono);
+    font-size: var(--text-small);
+    padding: var(--spacing) calc(var(--spacing) * 2.5);
+  }
+
+  .bird-detail-hero {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+  }
+
+  .bird-detail-hero img {
+    width: 100%;
+    max-height: 36rem;
+    object-fit: cover;
+  }
+
+  .bird-detail-hero figcaption {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing);
+    color: var(--color-text-muted);
+    font-size: var(--text-small);
+    padding: calc(var(--spacing) * 3);
+  }
+
+  .bird-detail-description {
+    max-width: 44rem;
+  }
+
+  .bird-detail-reference {
+    display: flex;
+    max-width: 44rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: calc(var(--spacing) * 2);
+    border-left: 3px solid var(--color-accent);
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+    padding: calc(var(--spacing) * 3.5);
+  }
+
+  .bird-detail-reference a {
+    color: var(--color-accent);
+    font-weight: var(--font-weight-bold);
+  }
+
+  .bird-detail-reference a:hover {
+    color: var(--color-accent-hover);
+  }
+
+  .bird-sightings {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 4);
+  }
+
+  .bird-sightings-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: calc(var(--spacing) * 3);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: calc(var(--spacing) * 3);
+  }
+
+  .bird-sightings-heading h2 {
+    color: var(--color-text-strong);
+    font-size: var(--text-heading);
+    font-weight: var(--font-weight-bold);
+  }
+
+  .bird-sightings-heading p {
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-small);
+  }
+
+  .bird-sighting-list {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: calc(var(--spacing) * 3);
+  }
+
+  .bird-sighting-card {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+  }
+
+  .bird-sighting-detail-link {
+    display: grid;
+    flex: 1;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .bird-sighting-photo .card-photo-link {
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+  }
+
+  .bird-sighting-card img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+  }
+
+  .bird-sighting-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing);
+    padding: calc(var(--spacing) * 3.5);
+  }
+
+  .bird-sighting-body strong {
+    color: var(--color-text-strong);
+  }
+
+  .bird-sighting-body span {
+    color: var(--color-text-muted);
+    font-size: var(--text-small);
+  }
+
+  .bird-sighting-card:hover {
+    border-color: var(--color-accent);
+    background: var(--color-accent-soft);
+  }
+
+  @media (min-width: 40rem) {
+    .bird-detail-header:has(.bird-detail-hero) {
+      grid-template-columns: minmax(0, 0.8fr) minmax(18rem, 1.2fr);
+      align-items: start;
+    }
+
+    .bird-sighting-list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .sighting-page {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 6);
+  }
+
+  .sighting-back {
+    align-self: flex-start;
+  }
+
+  .sighting-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing);
+    border-top: 1px solid var(--color-border);
+    padding-top: calc(var(--spacing) * 4);
+  }
+
+  .sighting-kicker {
+    color: var(--color-accent);
+    font-family: var(--font-mono);
+    font-size: var(--text-small);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .sighting-title {
+    color: var(--color-text-strong);
+    font-size: clamp(2.25rem, 9vw, 3.75rem);
+    font-weight: 800;
+    letter-spacing: -0.045em;
+    line-height: 1.02;
+  }
+
+  .sighting-scientific,
+  .sighting-header .dt-published {
+    color: var(--color-text-muted);
+  }
+
+  .sighting-header .u-url {
+    align-self: flex-start;
+    font-family: var(--font-mono);
+    font-size: var(--text-small);
+  }
+
+  .sighting-gallery {
+    display: grid;
+    gap: calc(var(--spacing) * 4);
+  }
+
+  .sighting-photo {
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+  }
+
+  .sighting-photo img {
+    width: 100%;
+    height: auto;
+  }
+
+  .sighting-photo figcaption {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing);
+    color: var(--color-text-muted);
+    font-size: var(--text-small);
+    padding: calc(var(--spacing) * 3);
+  }
+
+  .sighting-facts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: calc(var(--spacing) * 4);
+    border-block: 1px solid var(--color-border);
+    padding-block: calc(var(--spacing) * 4);
+  }
+
+  .sighting-facts div {
+    min-width: 0;
+  }
+
+  .sighting-facts dt {
+    color: var(--color-text-subtle);
+    font-family: var(--font-mono);
+    font-size: var(--text-small);
+  }
+
+  .sighting-facts dd {
+    margin-top: var(--spacing);
+    color: var(--color-text-strong);
+    overflow-wrap: anywhere;
+  }
+
+  .sighting-notes {
+    max-width: 44rem;
+  }
+
+  @media (min-width: 40rem) {
+    .sighting-gallery {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .sighting-photo-featured:first-child,
+    .sighting-gallery .sighting-photo:only-child {
+      grid-column: 1 / -1;
+    }
+
+    .sighting-facts {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 32rem) {
+    .birdex-heading-row {
+      flex-direction: row;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+
+    .bird-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
   .content-section,
   .subscribe-section {
     display: flex;

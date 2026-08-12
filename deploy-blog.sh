@@ -14,6 +14,7 @@ deno install
 deno task tailwind:build
 
 python manage.py migrate
+python manage.py publish_birdex_robots
 python manage.py collectstatic --noinput
 
 sudo systemctl restart django-blog

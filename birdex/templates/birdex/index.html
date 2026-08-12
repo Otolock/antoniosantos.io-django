@@ -1,0 +1,54 @@
+{% extends "blog/base.html" %}
+
+{% block title %}Birdex — Antonio's Blog{% endblock %}
+
+{% block content %}
+  <section class="birdex-page">
+    <header class="birdex-header">
+      <p class="birdex-kicker">Field notes</p>
+      <div class="birdex-heading-row">
+        <div>
+          <h1 class="birdex-title">Birdex</h1>
+          <p class="birdex-intro">A growing collection of birds I’ve seen.</p>
+        </div>
+        <p class="birdex-count">
+          {{ birds|length }} bird{{ birds|length|pluralize }}
+        </p>
+      </div>
+    </header>
+
+    {% if birds %}
+    <div class="bird-grid">
+      {% for bird in birds %}
+      <article class="bird-card">
+        {% if bird.featured_photo %}
+          <figure class="bird-card-photo">
+            <a
+              class="card-photo-link"
+              href="{{ bird.get_absolute_url }}"
+              aria-label="View {{ bird.common_name }}"
+            >
+            <img
+              src="{{ bird.featured_photo.image.url }}"
+              alt="{{ bird.common_name }}"
+              loading="lazy"
+              decoding="async"
+            >
+            </a>
+            <figcaption>{% include "birdex/includes/photo_license.html" %}</figcaption>
+          </figure>
+        {% endif %}
+        <a class="bird-card-link" href="{{ bird.get_absolute_url }}">
+          <span class="bird-card-body">
+            <span class="bird-card-name">{{ bird.common_name }}</span>
+            <span class="bird-card-scientific"><i>{{ bird.scientific_name }}</i></span>
+          </span>
+        </a>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="birdex-empty">No birds have been added yet.</p>
+    {% endif %}
+  </section>
+{% endblock %}
