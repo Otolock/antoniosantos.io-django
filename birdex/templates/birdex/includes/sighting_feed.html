@@ -8,7 +8,7 @@
 {% endif %}
 <p><i>{{ sighting.bird.scientific_name }}</i></p>
 <p>
-I documented this {{ sighting.bird.common_name }} on {{ sighting.date|date:"F j, Y" }}{% if sighting.location %} in {{ sighting.location }}{% endif %}.
+I documented a {{ sighting.bird.common_name }} (<i>{{ sighting.bird.scientific_name }}</i>) on {{ sighting.date|date:"F j, Y" }}{% if sighting.location %} in {{ sighting.location }}{% endif %}.
 </p>
 {% if sighting.notes %}{{ sighting.notes|linebreaks }}{% elif sighting.bird.description %}{{ sighting.bird.description|linebreaks }}{% endif %}
 <p>

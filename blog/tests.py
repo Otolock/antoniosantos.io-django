@@ -888,7 +888,9 @@ class LatestPostsFeedTests(TestCase):
         )
         self.assertLess(
             description.index(photo.image.url),
-            description.index("I documented this Puerto Rican Tody"),
+            description.index(
+                "I documented a Puerto Rican Tody (<i>Todus mexicanus</i>)"
+            ),
         )
         self.assertEqual(
             [category.text for category in item.findall("category")],
