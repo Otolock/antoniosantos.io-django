@@ -48,7 +48,7 @@
             <article class="h-entry home-note">
                 <a class="u-url home-note-link" href="{{ note.get_absolute_url }}">
                     <span class="p-name p-summary home-note-summary">
-                        {{ note.body_html|striptags|truncatewords:24 }}
+                        {{ note.body_html|striptags }}
                     </span>
                     <time class="dt-published home-note-date" datetime="{{ note.published_at|date:'c' }}">
                         {{ note.published_at|date:"M j" }}
