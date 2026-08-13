@@ -20,7 +20,11 @@ def birdex_photo_upload_to(instance, filename):
 
 class SightingQuerySet(models.QuerySet):
     def published(self):
-        return self.filter(published_at__lte=timezone.now())
+        return self.filter(
+            status=Sighting.Status.PUBLISHED,
+            published_at__isnull=False,
+            published_at__lte=timezone.now(),
+        )
 
     def with_primary_photo(self):
         return self.select_related("bird").prefetch_related(
@@ -59,6 +63,10 @@ class Bird(models.Model):
 
 
 class Sighting(models.Model):
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        PUBLISHED = "published", "Published"
+
     class Confidence(models.TextChoices):
         TENTATIVE = "tentative", "Tentative"
         PROBABLE = "probable", "Probable"
@@ -92,8 +100,18 @@ class Sighting(models.Model):
         default=Verification.UNVERIFIED,
     )
 
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.DRAFT,
+        help_text="Draft sightings are only visible in the admin.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
-    published_at = models.DateTimeField(default=timezone.now)
+    published_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Leave blank to use the time the sighting is published.",
+    )
 
     objects = SightingQuerySet.as_manager()
 
@@ -102,6 +120,23 @@ class Sighting(models.Model):
 
     def __str__(self):
         return f"{self.bird.common_name} — {self.date}"
+
+    def save(self, *args, **kwargs):
+        if self.status == self.Status.PUBLISHED and self.published_at is None:
+            self.published_at = timezone.now()
+            update_fields = kwargs.get("update_fields")
+            if update_fields is not None:
+                kwargs["update_fields"] = set(update_fields) | {"published_at"}
+
+        super().save(*args, **kwargs)
+
+    @property
+    def is_published(self):
+        return (
+            self.status == self.Status.PUBLISHED
+            and self.published_at is not None
+            and self.published_at <= timezone.now()
+        )
 
     def get_absolute_url(self):
         return reverse(

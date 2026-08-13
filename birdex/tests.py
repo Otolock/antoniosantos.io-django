@@ -3,10 +3,14 @@ import tempfile
 from io import StringIO
 from pathlib import Path
 
+from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.files.storage import FileSystemStorage
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
+from unittest.mock import patch
 
 from .models import Bird, Sighting, SightingPhoto, birdex_photo_upload_to
 
@@ -53,7 +57,11 @@ class BirdexHomeTests(TestCase):
             scientific_name="Todus mexicanus",
             slug="puerto-rican-tody",
         )
-        sighting = Sighting.objects.create(bird=bird, date="2026-08-12")
+        sighting = Sighting.objects.create(
+            bird=bird,
+            date="2026-08-12",
+            status=Sighting.Status.PUBLISHED,
+        )
         photo = SightingPhoto.objects.create(
             sighting=sighting,
             image="birdex/photos/tody.jpg",
@@ -74,7 +82,11 @@ class BirdexHomeTests(TestCase):
             scientific_name="Coereba flaveola",
             slug="bananaquit",
         )
-        sighting = Sighting.objects.create(bird=bird, date="2026-08-12")
+        sighting = Sighting.objects.create(
+            bird=bird,
+            date="2026-08-12",
+            status=Sighting.Status.PUBLISHED,
+        )
         SightingPhoto.objects.create(
             sighting=sighting,
             image="birdex/photos/bananaquit.jpg",
@@ -110,6 +122,7 @@ class BirdDetailTests(TestCase):
             date="2026-08-12",
             location="Cabo Rojo",
             confidence=Sighting.Confidence.HIGH,
+            status=Sighting.Status.PUBLISHED,
         )
         photo = SightingPhoto.objects.create(
             sighting=published,
@@ -121,6 +134,7 @@ class BirdDetailTests(TestCase):
             bird=self.bird,
             date="2026-08-13",
             location="Hidden location",
+            status=Sighting.Status.PUBLISHED,
             published_at=timezone.now() + timezone.timedelta(days=1),
         )
 
@@ -180,6 +194,33 @@ class SightingTests(TestCase):
             f"/birdex/puerto-rican-tody/sightings/{sighting.pk}/",
         )
 
+    def test_new_sighting_is_a_private_draft_by_default(self):
+        sighting = Sighting.objects.create(
+            bird=self.bird,
+            date="2026-08-12",
+            location="Not ready for the feed",
+        )
+
+        self.assertEqual(sighting.status, Sighting.Status.DRAFT)
+        self.assertIsNone(sighting.published_at)
+        self.assertFalse(sighting.is_published)
+        self.assertEqual(self.client.get(sighting.get_absolute_url()).status_code, 404)
+        self.assertNotContains(
+            self.client.get(self.bird.get_absolute_url()),
+            "Not ready for the feed",
+        )
+
+    def test_publishing_sets_the_publication_time(self):
+        sighting = Sighting.objects.create(bird=self.bird, date="2026-08-12")
+
+        before_save = timezone.now()
+        sighting.status = Sighting.Status.PUBLISHED
+        sighting.save(update_fields=("status",))
+
+        self.assertGreaterEqual(sighting.published_at, before_save)
+        self.assertLessEqual(sighting.published_at, timezone.now())
+        self.assertTrue(sighting.is_published)
+
     def test_detail_shows_sighting_metadata_and_photos(self):
         sighting = Sighting.objects.create(
             bird=self.bird,
@@ -188,6 +229,7 @@ class SightingTests(TestCase):
             notes="Seen near the trail.",
             confidence=Sighting.Confidence.HIGH,
             verification=Sighting.Verification.COMMUNITY,
+            status=Sighting.Status.PUBLISHED,
         )
         photo = SightingPhoto.objects.create(
             sighting=sighting,
@@ -231,6 +273,7 @@ class SightingTests(TestCase):
             bird=self.bird,
             date="2026-08-12",
             location="Cabo Rojo",
+            status=Sighting.Status.PUBLISHED,
         )
 
         response = self.client.get(sighting.get_absolute_url())
@@ -250,6 +293,7 @@ class SightingTests(TestCase):
         sighting = Sighting.objects.create(
             bird=self.bird,
             date="2026-08-12",
+            status=Sighting.Status.PUBLISHED,
             published_at=timezone.now() + timezone.timedelta(days=1),
         )
 
@@ -274,6 +318,80 @@ class SightingTests(TestCase):
 
         self.assertEqual(sighting.primary_photo, featured)
         self.assertEqual(sighting.photo_count, 2)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class SightingAdminWorkflowTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_superuser(
+            username="birdex-admin",
+            email="birdex@example.com",
+            password="password",
+        )
+        self.client.force_login(self.user)
+        self.bird = Bird.objects.create(
+            common_name="Puerto Rican Tody",
+            scientific_name="Todus mexicanus",
+            slug="puerto-rican-tody",
+        )
+
+    def test_add_form_starts_as_draft_and_includes_photo_uploads(self):
+        response = self.client.get(reverse("admin:birdex_sighting_add"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["adminform"].form["status"].value(), "draft")
+        self.assertContains(response, "upload these before publishing")
+        self.assertContains(response, 'name="photos-0-image"')
+        self.assertContains(response, 'name="photos-0-caption"')
+        self.assertContains(response, 'name="photos-0-is_featured"')
+
+    def test_can_upload_a_photo_and_publish_in_one_submission(self):
+        image = SimpleUploadedFile(
+            "tody.gif",
+            (
+                b"GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff"
+                b"!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00"
+                b"\x00\x02\x02D\x01\x00;"
+            ),
+            content_type="image/gif",
+        )
+
+        with tempfile.TemporaryDirectory() as media_root, self.settings(
+            MEDIA_ROOT=media_root
+        ), patch.object(
+            SightingPhoto._meta.get_field("image"),
+            "storage",
+            FileSystemStorage(location=media_root),
+        ):
+            response = self.client.post(
+                reverse("admin:birdex_sighting_add"),
+                {
+                    "bird": self.bird.pk,
+                    "date": "2026-08-12",
+                    "location": "Cabo Rojo",
+                    "notes": "Ready with its photo.",
+                    "confidence": Sighting.Confidence.HIGH,
+                    "verification": Sighting.Verification.UNVERIFIED,
+                    "status": Sighting.Status.PUBLISHED,
+                    "photos-TOTAL_FORMS": "1",
+                    "photos-INITIAL_FORMS": "0",
+                    "photos-MIN_NUM_FORMS": "0",
+                    "photos-MAX_NUM_FORMS": "1000",
+                    "photos-0-image": image,
+                    "photos-0-caption": "Tody on a branch",
+                    "photos-0-is_featured": "on",
+                    "_save": "Save",
+                },
+            )
+
+        self.assertEqual(response.status_code, 302)
+        sighting = Sighting.objects.get()
+        self.assertEqual(sighting.status, Sighting.Status.PUBLISHED)
+        self.assertIsNotNone(sighting.published_at)
+        self.assertTrue(sighting.is_published)
+        self.assertEqual(sighting.photos.count(), 1)
+        self.assertTrue(sighting.photos.get().is_featured)
+        self.assertEqual(self.client.get(sighting.get_absolute_url()).status_code, 200)
 
 
 class BirdexPhotoUploadPathTests(TestCase):

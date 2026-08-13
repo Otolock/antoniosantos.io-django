@@ -247,6 +247,7 @@ class PostViewTests(TestCase):
             bird=bird,
             date="2026-08-12",
             location="Cabo Rojo",
+            status=Sighting.Status.PUBLISHED,
         )
         photo = SightingPhoto.objects.create(
             sighting=sighting,
@@ -274,6 +275,7 @@ class PostViewTests(TestCase):
         Sighting.objects.create(
             bird=bird,
             date="2026-08-12",
+            status=Sighting.Status.PUBLISHED,
             published_at=timezone.now() + timezone.timedelta(days=1),
         )
 
@@ -838,6 +840,7 @@ class LatestPostsFeedTests(TestCase):
             date="2026-08-12",
             location="Cabo Rojo",
             notes="Seen near the trail.",
+            status=Sighting.Status.PUBLISHED,
         )
         photo = SightingPhoto.objects.create(
             sighting=sighting,
@@ -880,6 +883,24 @@ class LatestPostsFeedTests(TestCase):
         media = item.find("{http://search.yahoo.com/mrss/}content")
         self.assertEqual(media.attrib["url"], photo.image.url)
         self.assertEqual(media.attrib["medium"], "image")
+
+    @override_settings(ALLOWED_HOSTS=["example.com"], SITE_URL="https://example.com")
+    def test_combined_rss_excludes_draft_sightings(self):
+        bird = Bird.objects.create(
+            common_name="Puerto Rican Tody",
+            scientific_name="Todus mexicanus",
+            slug="puerto-rican-tody",
+        )
+        Sighting.objects.create(
+            bird=bird,
+            date="2026-08-12",
+            location="Still adding photos",
+        )
+
+        response = self.client.get(reverse("blog:rss"), HTTP_HOST="example.com")
+
+        self.assertNotContains(response, "Puerto Rican Tody sighting")
+        self.assertNotContains(response, "Still adding photos")
 
     @override_settings(STORAGES=TEST_STORAGES)
     def test_posts_only_rss_excludes_sightings(self):
