@@ -19,17 +19,20 @@
         {% for post in posts %}
             <li>
                 <article class="h-entry post-list-item">
-                    <a class="p-name u-url" href="{% url 'blog:post_detail' post.slug %}">
-                        {{ post.title }}
-                    </a>
-                    <span class="sr-only">
-                        Published
+                    <p class="post-date home-post-date">
                         <time class="dt-published" datetime="{{ post.published_at|date:'c' }}">
                             {{ post.published_at|date:"F j, Y" }}
                         </time>
-                    </span>
+                    </p>
+
+                    <h3 class="post-list-title home-post-title">
+                        <a class="p-name u-url" href="{% url 'blog:post_detail' post.slug %}">
+                            {{ post.title }}
+                        </a>
+                    </h3>
+
                     {% if post.description %}
-                        <data class="p-summary" value="{{ post.description }}"></data>
+                        <p class="p-summary">{{ post.description }}</p>
                     {% endif %}
                 </article>
             </li>

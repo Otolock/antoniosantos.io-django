@@ -221,6 +221,18 @@ class PostViewTests(TestCase):
         self.assertContains(response, 'class="dt-published"')
         self.assertContains(response, 'class="p-summary"')
 
+    def test_home_shows_post_dates_and_summaries(self):
+        self.make_post(description="A little context for the post.")
+
+        response = self.client.get(reverse("blog:home"))
+
+        self.assertContains(response, 'class="post-date home-post-date"')
+        self.assertContains(
+            response,
+            '<p class="p-summary">A little context for the post.</p>',
+            html=True,
+        )
+
     def test_home_renders_notes_as_timestamped_content(self):
         note = Note.objects.create(
             slug="note-2026-07-14-0930",
