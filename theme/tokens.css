@@ -1,15 +1,13 @@
 @theme {
   /* Graphite foundation */
-  --color-graphite: #353839;
-  --color-graphite-surface: #3f4344;
-  --color-graphite-raised: #494f50;
-  --color-graphite-border: #626a6d;
+  --color-graphite: #202324;
+  --color-graphite-surface: #292d2e;
+  --color-graphite-raised: #34393a;
+  --color-graphite-border: #555e61;
 
-  /* Azure accents */
-  --color-azure: #007fff;
-  --color-azure-hover: #168bff;
-  --color-azure-text: #6ab2ff;
-  --color-azure-text-hover: #80beff;
+  /* Green accents */
+  --color-green: #2dbe60;
+  --color-green-hover: #43c96a;
 
   /* Semantic colors */
   --color-background: var(--color-graphite);
@@ -20,20 +18,20 @@
   --color-text-muted: #c5cdd0;
   --color-text-subtle: #aab5b9;
   --color-border: var(--color-graphite-border);
-  --color-accent: var(--color-azure);
-  --color-accent-hover: var(--color-azure-hover);
-  --color-accent-text: var(--color-azure-text);
-  --color-accent-text-hover: var(--color-azure-text-hover);
+  --color-accent: var(--color-green);
+  --color-accent-hover: var(--color-green-hover);
+  --color-accent-text: var(--color-green);
+  --color-accent-text-hover: var(--color-green-hover);
   --color-accent-soft: color-mix(
     in srgb,
-    var(--color-azure) 18%,
+    var(--color-green) 18%,
     transparent
   );
   --color-disabled: #899497;
   --color-on-accent: #111416;
   --color-selection: color-mix(
     in srgb,
-    var(--color-azure) 45%,
+    var(--color-green) 45%,
     transparent
   );
 
