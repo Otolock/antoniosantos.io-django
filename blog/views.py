@@ -6,7 +6,6 @@ from django.utils import timezone
 
 from birdex.models import Sighting
 
-from .blogroll import LINK_COUNT, LINK_GROUPS
 from .models import Note, Post, PostMedia, Tag
 from webmentions.models import Webmention
 
@@ -76,14 +75,6 @@ def tag_detail(request, slug):
 
 def now(request):
     return render(request, "blog/now.html")
-
-
-def blogroll(request):
-    return render(
-        request,
-        "blog/blogroll.html",
-        {"link_groups": LINK_GROUPS, "link_count": LINK_COUNT},
-    )
 
 
 def subscribe(request):
