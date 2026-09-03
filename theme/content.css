@@ -4,8 +4,7 @@
     background: var(--color-surface);
     color: var(--color-text);
     font-size: var(--text-small);
-    padding: calc(var(--spacing) * 3)
-      calc(var(--spacing) * 4);
+    padding: calc(var(--spacing) * 3) calc(var(--spacing) * 4);
   }
 
   .intro-section {
@@ -126,7 +125,7 @@
   }
 
   .home-note-link:hover {
-    color: var(--color-accent);
+    color: var(--color-accent-text);
   }
 
   .home-note-summary {
@@ -162,7 +161,8 @@
     flex: 1;
     color: var(--color-text);
     text-decoration: none;
-    transition: border-color var(--default-transition-duration)
+    transition:
+      border-color var(--default-transition-duration)
       var(--default-transition-timing-function),
       background-color var(--default-transition-duration)
       var(--default-transition-timing-function);
@@ -186,8 +186,7 @@
   }
 
   .home-sighting-media figcaption {
-    padding: calc(var(--spacing) * 2.5)
-      calc(var(--spacing) * 3.5);
+    padding: calc(var(--spacing) * 2.5) calc(var(--spacing) * 3.5);
   }
 
   .home-sighting-body {
@@ -253,7 +252,7 @@
   .h-feed > .h-entry > :where(h2, h3) a,
   .post-reply a,
   .text-link {
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     transition: color var(--default-transition-duration)
       var(--default-transition-timing-function);
   }
@@ -269,7 +268,7 @@
   .post-reply a:hover,
   .post-reply-link:hover,
   .text-link:hover {
-    color: var(--color-accent-hover);
+    color: var(--color-accent-text-hover);
   }
 
   .note-prose > :first-child {
@@ -302,12 +301,11 @@
     font-size: var(--text-small);
     line-height: var(--leading-compact);
     overflow-wrap: anywhere;
-    padding: calc(var(--spacing) * 3)
-      calc(var(--spacing) * 4);
+    padding: calc(var(--spacing) * 3) calc(var(--spacing) * 4);
   }
 
   .post-reply-link {
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     font-family: var(--font-mono);
     text-decoration: underline;
   }
@@ -355,12 +353,12 @@
     align-items: center;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-pill);
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     font-size: var(--text-small);
     line-height: 1;
-    padding: calc(var(--spacing) * 1.5)
-      calc(var(--spacing) * 3);
-    transition: border-color var(--default-transition-duration)
+    padding: calc(var(--spacing) * 1.5) calc(var(--spacing) * 3);
+    transition:
+      border-color var(--default-transition-duration)
       var(--default-transition-timing-function),
       color var(--default-transition-duration)
       var(--default-transition-timing-function);
@@ -368,7 +366,7 @@
 
   .tag-pill:hover {
     border-color: var(--color-accent);
-    color: var(--color-accent-hover);
+    color: var(--color-accent-text-hover);
   }
 
   .feedback-actions {
@@ -384,14 +382,14 @@
 
   .feedback-actions a,
   .upvote-button {
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     transition: color var(--default-transition-duration)
       var(--default-transition-timing-function);
   }
 
   .feedback-actions a:hover,
   .upvote-button:hover {
-    color: var(--color-accent-hover);
+    color: var(--color-accent-text-hover);
   }
 
   .upvote-button:disabled {
@@ -470,7 +468,7 @@
     --tw-prose-body: var(--color-text);
     --tw-prose-headings: var(--color-text-strong);
     --tw-prose-lead: var(--color-text);
-    --tw-prose-links: var(--color-accent);
+    --tw-prose-links: var(--color-accent-text);
     --tw-prose-bold: var(--color-text-strong);
     --tw-prose-counters: var(--color-text-muted);
     --tw-prose-bullets: var(--color-text-muted);
@@ -492,7 +490,7 @@
   .bird-detail-description :where(a):hover,
   .sighting-notes :where(a):hover,
   .sighting-species-description :where(a):hover {
-    color: var(--color-accent-hover);
+    color: var(--color-accent-text-hover);
   }
 
   @media (min-width: 40rem) {

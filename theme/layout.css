@@ -64,8 +64,9 @@
 
   body > header > nav a,
   body > footer a {
-    color: var(--color-accent);
-    transition: color var(--default-transition-duration)
+    color: var(--color-accent-text);
+    transition:
+      color var(--default-transition-duration)
       var(--default-transition-timing-function),
       background-color var(--default-transition-duration)
       var(--default-transition-timing-function);
@@ -77,7 +78,7 @@
 
   body > header > nav a:hover,
   body > footer a:hover {
-    color: var(--color-accent-hover);
+    color: var(--color-accent-text-hover);
   }
 
   body > main {

@@ -1,53 +1,39 @@
 @theme {
-  /* Nord: Polar Night */
-  --color-nord-0: #2e3440;
-  --color-nord-1: #3b4252;
-  --color-nord-2: #434c5e;
-  --color-nord-3: #4c566a;
+  /* Graphite foundation */
+  --color-graphite: #353839;
+  --color-graphite-surface: #3f4344;
+  --color-graphite-raised: #494f50;
+  --color-graphite-border: #626a6d;
 
-  /* Nord: Snow Storm */
-  --color-nord-4: #d8dee9;
-  --color-nord-5: #e5e9f0;
-  --color-nord-6: #eceff4;
+  /* Azure accents */
+  --color-azure: #007fff;
+  --color-azure-hover: #168bff;
+  --color-azure-text: #6ab2ff;
+  --color-azure-text-hover: #80beff;
 
-  /* Nord: Frost */
-  --color-nord-7: #8fbcbb;
-  --color-nord-8: #88c0d0;
-  --color-nord-9: #81a1c1;
-  --color-nord-10: #5e81ac;
-
-  /* Nord: Aurora */
-  --color-nord-11: #bf616a;
-  --color-nord-12: #d08770;
-  --color-nord-13: #ebcb8b;
-  --color-nord-14: #a3be8c;
-  --color-nord-15: #b48ead;
-
-  /* Semantic colors: light by default */
-  --color-background: var(--color-nord-6);
-  --color-surface: var(--color-nord-5);
-  --color-surface-raised: var(--color-nord-4);
-  --color-text: var(--color-nord-0);
-  --color-text-strong: var(--color-nord-0);
-  --color-text-muted: var(--color-nord-2);
-  --color-text-subtle: var(--color-nord-3);
-  --color-border: var(--color-nord-4);
-  --color-accent: color-mix(
-    in srgb,
-    var(--color-nord-10) 72%,
-    var(--color-nord-0)
-  );
-  --color-accent-hover: var(--color-nord-2);
+  /* Semantic colors */
+  --color-background: var(--color-graphite);
+  --color-surface: var(--color-graphite-surface);
+  --color-surface-raised: var(--color-graphite-raised);
+  --color-text: #e8eef0;
+  --color-text-strong: #f7fafb;
+  --color-text-muted: #c5cdd0;
+  --color-text-subtle: #aab5b9;
+  --color-border: var(--color-graphite-border);
+  --color-accent: var(--color-azure);
+  --color-accent-hover: var(--color-azure-hover);
+  --color-accent-text: var(--color-azure-text);
+  --color-accent-text-hover: var(--color-azure-text-hover);
   --color-accent-soft: color-mix(
     in srgb,
-    var(--color-nord-10) 14%,
+    var(--color-azure) 18%,
     transparent
   );
-  --color-disabled: var(--color-nord-3);
-  --color-on-accent: var(--color-nord-6);
+  --color-disabled: #899497;
+  --color-on-accent: #111416;
   --color-selection: color-mix(
     in srgb,
-    var(--color-nord-9) 35%,
+    var(--color-azure) 45%,
     transparent
   );
 
@@ -94,42 +80,6 @@
 
 @layer theme {
   :root {
-    color-scheme: light;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root {
-      color-scheme: dark;
-      --color-background: var(--color-nord-0);
-      --color-surface: var(--color-nord-1);
-      --color-surface-raised: var(--color-nord-2);
-      --color-text: var(--color-nord-4);
-      --color-text-strong: var(--color-nord-6);
-      --color-text-muted: color-mix(
-        in srgb,
-        var(--color-nord-4) 76%,
-        var(--color-nord-3)
-      );
-      --color-text-subtle: color-mix(
-        in srgb,
-        var(--color-nord-4) 58%,
-        var(--color-nord-3)
-      );
-      --color-border: var(--color-nord-2);
-      --color-accent: var(--color-nord-8);
-      --color-accent-hover: var(--color-nord-7);
-      --color-accent-soft: color-mix(
-        in srgb,
-        var(--color-nord-8) 14%,
-        transparent
-      );
-      --color-disabled: var(--color-nord-3);
-      --color-on-accent: var(--color-nord-0);
-      --color-selection: color-mix(
-        in srgb,
-        var(--color-nord-9) 42%,
-        transparent
-      );
-    }
+    color-scheme: dark;
   }
 }

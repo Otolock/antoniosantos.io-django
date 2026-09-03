@@ -15,7 +15,7 @@
 
   .birdex-kicker,
   .birdex-count {
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     font-family: var(--font-mono);
     font-size: var(--text-small);
   }
@@ -64,7 +64,8 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-card);
     background: var(--color-surface);
-    transition: transform var(--default-transition-duration)
+    transition:
+      transform var(--default-transition-duration)
       var(--default-transition-timing-function),
       border-color var(--default-transition-duration)
       var(--default-transition-timing-function);
@@ -100,8 +101,7 @@
 
   .bird-card-photo figcaption,
   .bird-sighting-photo figcaption {
-    padding: calc(var(--spacing) * 2.5)
-      calc(var(--spacing) * 3.5);
+    padding: calc(var(--spacing) * 2.5) calc(var(--spacing) * 3.5);
   }
 
   .photo-enlarge-link {
@@ -122,13 +122,13 @@
   }
 
   .photo-license a {
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     text-decoration: underline;
     text-underline-offset: 0.14em;
   }
 
   .photo-license a:hover {
-    color: var(--color-accent-hover);
+    color: var(--color-accent-text-hover);
   }
 
   .bird-card-body {
@@ -180,11 +180,11 @@
   }
 
   .birdex-breadcrumbs a {
-    color: var(--color-accent);
+    color: var(--color-accent-text);
   }
 
   .birdex-breadcrumbs a:hover {
-    color: var(--color-accent-hover);
+    color: var(--color-accent-text-hover);
   }
 
   .bird-detail-page {
@@ -225,7 +225,7 @@
     margin-top: calc(var(--spacing) * 2);
     border: 1px solid var(--color-accent);
     border-radius: var(--radius-pill);
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     font-family: var(--font-mono);
     font-size: var(--text-small);
     padding: var(--spacing) calc(var(--spacing) * 2.5);
@@ -271,12 +271,12 @@
   }
 
   .bird-detail-reference a {
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     font-weight: var(--font-weight-bold);
   }
 
   .bird-detail-reference a:hover {
-    color: var(--color-accent-hover);
+    color: var(--color-accent-text-hover);
   }
 
   .bird-sightings {
@@ -391,7 +391,7 @@
   }
 
   .sighting-kicker {
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     font-family: var(--font-mono);
     font-size: var(--text-small);
     font-weight: var(--font-weight-bold);
@@ -596,7 +596,7 @@
     display: flex;
     align-items: center;
     gap: calc(var(--spacing) * 2);
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     font-weight: var(--font-weight-bold);
   }
 
@@ -632,7 +632,7 @@
   }
 
   .links-count {
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     font-size: var(--text-small);
   }
 
@@ -657,7 +657,7 @@
 
   .link-group-eyebrow {
     margin-bottom: calc(var(--spacing) * 1.5);
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     font-size: 0.75rem;
     font-weight: var(--font-weight-bold);
     letter-spacing: 0.08em;
@@ -688,21 +688,22 @@
     color: var(--color-text);
     padding: calc(var(--spacing) * 3.5);
     text-decoration: none;
-    transition: transform var(--default-transition-duration)
-        var(--default-transition-timing-function),
+    transition:
+      transform var(--default-transition-duration)
+      var(--default-transition-timing-function),
       border-color var(--default-transition-duration)
-        var(--default-transition-timing-function),
+      var(--default-transition-timing-function),
       background-color var(--default-transition-duration)
-        var(--default-transition-timing-function),
+      var(--default-transition-timing-function),
       box-shadow var(--default-transition-duration)
-        var(--default-transition-timing-function);
+      var(--default-transition-timing-function);
   }
 
   .link-card:hover {
     transform: translateY(-1px);
     border-color: var(--color-accent);
     background: var(--color-accent-soft);
-    box-shadow: 0 0.35rem 0.9rem color-mix(in srgb, var(--color-nord-0) 8%, transparent);
+    box-shadow: 0 0.35rem 0.9rem color-mix(in srgb, black 18%, transparent);
   }
 
   .link-card-compact {
@@ -720,7 +721,7 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-small);
     background: var(--color-background);
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     font-family: var(--font-mono);
     font-size: var(--text-small);
     font-weight: var(--font-weight-bold);
@@ -754,7 +755,7 @@
   }
 
   .link-card-arrow {
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     font-size: var(--text-section-large);
     line-height: 1;
     transition: transform var(--default-transition-duration)
@@ -776,17 +777,17 @@
   }
 
   .links-note-mark {
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     font-size: var(--text-section);
   }
 
   .links-note a {
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     font-weight: var(--font-weight-bold);
   }
 
   .links-note a:hover {
-    color: var(--color-accent-hover);
+    color: var(--color-accent-text-hover);
   }
 
   @media (min-width: 40rem) {
@@ -862,7 +863,8 @@
     background: var(--color-surface);
     color: var(--color-text);
     padding: calc(var(--spacing) * 4);
-    transition: border-color var(--default-transition-duration)
+    transition:
+      border-color var(--default-transition-duration)
       var(--default-transition-timing-function),
       background-color var(--default-transition-duration)
       var(--default-transition-timing-function);
@@ -874,7 +876,7 @@
   }
 
   .rss-feed-card-title {
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     font-size: var(--text-section);
     font-weight: var(--font-weight-bold);
   }
@@ -940,14 +942,14 @@
   }
 
   .indieauth-client a {
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     overflow-wrap: anywhere;
     text-decoration: underline;
     text-underline-offset: 0.15em;
   }
 
   .indieauth-client a:hover {
-    color: var(--color-accent-hover);
+    color: var(--color-accent-text-hover);
   }
 
   .indieauth-client-id,
@@ -967,8 +969,7 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-small);
     color: var(--color-text);
-    padding: calc(var(--spacing) * 1.5)
-      calc(var(--spacing) * 2.5);
+    padding: calc(var(--spacing) * 1.5) calc(var(--spacing) * 2.5);
   }
 
   .indieauth-consent code {
@@ -986,12 +987,12 @@
     min-height: 2.75rem;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-small);
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     cursor: pointer;
     font-weight: var(--font-weight-bold);
-    padding: calc(var(--spacing) * 2)
-      calc(var(--spacing) * 4);
-    transition: background-color var(--default-transition-duration)
+    padding: calc(var(--spacing) * 2) calc(var(--spacing) * 4);
+    transition:
+      background-color var(--default-transition-duration)
       var(--default-transition-timing-function),
       border-color var(--default-transition-duration)
       var(--default-transition-timing-function),
@@ -1001,7 +1002,7 @@
 
   .indieauth-actions button:hover {
     border-color: var(--color-accent);
-    color: var(--color-accent-hover);
+    color: var(--color-accent-text-hover);
   }
 
   .indieauth-actions .btn-primary {
