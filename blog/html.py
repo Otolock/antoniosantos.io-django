@@ -1,6 +1,7 @@
 from urllib.parse import urlsplit
 
 from bs4 import BeautifulSoup, Comment
+from markdown import markdown
 
 
 ALLOWED_TAGS = {
@@ -24,6 +25,7 @@ ALLOWED_TAGS = {
     "pre",
     "source",
     "strong",
+    "sup",
     "ul",
     "video",
 }
@@ -34,11 +36,33 @@ TAG_ATTRIBUTES = {
     "a": {"href", "rel"},
     "audio": {"controls", "src"},
     "img": {"alt", "height", "src", "width"},
+    "li": {"id"},
+    "sup": {"id"},
     "source": {"src", "type"},
     "video": {"controls", "height", "src", "width"},
 }
 URL_ATTRIBUTES = {"href", "src"}
 SAFE_SCHEMES = {"http", "https", "mailto"}
+
+
+def render_markdown(body):
+    soup = BeautifulSoup(markdown(body, extensions=["footnotes"]), "html.parser")
+    # A footnote containing only a source URL should link to that source.
+    for paragraph in soup.select(".footnote li > p"):
+        node = paragraph.contents[0] if paragraph.contents else None
+        if not isinstance(node, str):
+            continue
+        url = node.strip()
+        if not url or any(char.isspace() for char in url):
+            continue
+        parts = urlsplit(url)
+        if parts.scheme not in {"http", "https"} or not parts.netloc:
+            continue
+        link = soup.new_tag("a", href=url)
+        link.string = url
+        node.replace_with(link)
+        link.insert_after(" ")
+    return sanitize_html(str(soup))
 
 
 def sanitize_html(html):

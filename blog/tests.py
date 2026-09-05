@@ -4,6 +4,8 @@ from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from django.test import TestCase
+from django.test import SimpleTestCase
+from bs4 import BeautifulSoup
 from django.urls import reverse
 from django.utils import timezone
 import tempfile
@@ -32,6 +34,33 @@ TEST_STORAGES = {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
 }
+
+
+class MarkdownFootnoteTests(SimpleTestCase):
+    def test_sources_and_return_links_survive_sanitization(self):
+        body = (
+            "Hurricane season[^1]. Blackouts[^2]. Season again[^1].\n\n"
+            "[^1]: https://www.nhc.noaa.gov/climo/#bac\n"
+            "[^2]: [GAO report](https://www.gao.gov/blog/blackout)"
+        )
+        for model in (Post, Note):
+            with self.subTest(model=model.__name__):
+                soup = BeautifulSoup(model(body=body).body_html, "html.parser")
+                self.assertEqual(len(soup.find_all("sup")), 3)
+                for link in soup.select('a[href^="#"]'):
+                    self.assertIsNotNone(soup.find(id=link["href"][1:]))
+                self.assertIsNotNone(soup.find("a", href="https://www.nhc.noaa.gov/climo/#bac"))
+                self.assertIsNotNone(soup.find("a", href="https://www.gao.gov/blog/blackout"))
+                self.assertNotIn("[^1]", soup.get_text())
+
+    def test_footnotes_preserve_sanitization_and_inline_code(self):
+        html = Post(body=(
+            "Reference[^1] and `[^2]`.\n\n"
+            '[^1]: <script>alert(1)</script>[bad](javascript:alert(1))\n'
+        )).body_html
+        self.assertNotIn("<script", html)
+        self.assertNotIn("javascript:", html)
+        self.assertIn("<code>[^2]</code>", html)
 
 
 class PostTests(TestCase):

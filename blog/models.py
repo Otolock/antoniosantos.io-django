@@ -7,9 +7,8 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
-from markdown import markdown
 
-from .html import sanitize_html
+from .html import render_markdown
 
 
 RESERVED_POST_SLUGS = {
@@ -99,7 +98,7 @@ class Post(models.Model):
 
     @property
     def body_html(self):
-        return sanitize_html(markdown(self.body))
+        return render_markdown(self.body)
 
     @property
     def is_published(self):
@@ -170,7 +169,7 @@ class Note(models.Model):
 
     @property
     def body_html(self):
-        return sanitize_html(markdown(self.body))
+        return render_markdown(self.body)
 
     @property
     def is_published(self):
