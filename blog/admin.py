@@ -21,6 +21,12 @@ class PublishableContentAdmin(admin.ModelAdmin):
     search_fields = ("body", "tags__name")
     autocomplete_fields = ("tags",)
 
+    def save_model(self, request, obj, form, change):
+        if "_publish_now" in request.POST:
+            obj.status = obj.PUBLISHED
+            obj.published_at = timezone.now()
+        super().save_model(request, obj, form, change)
+
     @admin.action(description="Publish selected content")
     def publish(self, request, queryset):
         for item in queryset:

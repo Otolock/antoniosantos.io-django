@@ -1283,6 +1283,50 @@ class PostAdminTests(TestCase):
                 for field in fields:
                     self.assertContains(response, f'name="{field}"')
 
+    @patch("blog.admin.send_webmentions_for_post_async")
+    def test_publish_now_saves_and_publishes_posts_and_notes(self, send):
+        for model in (Post, Note):
+            for change in (False, True):
+                with self.subTest(model=model.__name__, change=change):
+                    name = model._meta.model_name
+                    slug = f"publish-{name}-{change}"
+                    data = {
+                        "body": "Updated content",
+                        "status": model.DRAFT,
+                        "published_at_0": "2099-01-01",
+                        "published_at_1": "12:00:00",
+                        "_publish_now": "Publish now",
+                    }
+                    if model is Post:
+                        data.update(title="Publish me", slug=slug, upvotes_count=0)
+                    if change:
+                        item = model.objects.create(body="Old content", slug=slug)
+                        url = reverse(f"admin:blog_{name}_change", args=[item.pk])
+                    else:
+                        url = reverse(f"admin:blog_{name}_add")
+                    self.assertContains(self.client.get(url), 'name="_publish_now"')
+                    before = timezone.now()
+                    response = self.client.post(url, data)
+                    self.assertEqual(response.status_code, 302)
+                    item = model.objects.latest("pk")
+                    self.assertEqual(item.body, "Updated content")
+                    self.assertTrue(item.is_published)
+                    self.assertGreaterEqual(item.published_at, before)
+                    self.assertLessEqual(item.published_at, timezone.now())
+                    if model is Note:
+                        self.assertFalse(item.slug.startswith("note-draft-"))
+        self.assertEqual(send.call_count, 2)
+
+    def test_publish_now_requires_valid_content(self):
+        for model in (Post, Note):
+            with self.subTest(model=model.__name__):
+                response = self.client.post(
+                    reverse(f"admin:blog_{model._meta.model_name}_add"),
+                    {"body": "", "status": model.DRAFT, "_publish_now": "Publish now"},
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(model.objects.count(), 0)
+
     def test_post_form_includes_searchable_media_library(self):
         media = PostMedia.objects.create(
             title="Puerto Rican tody",

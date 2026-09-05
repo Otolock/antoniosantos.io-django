@@ -1,0 +1,7 @@
+{% extends "admin/submit_line.html" %}
+{% load i18n %}
+
+{% block submit-row %}
+{% if show_save %}<input type="submit" value="{% translate 'Publish now' %}" name="_publish_now">{% endif %}
+{{ block.super }}
+{% endblock %}
